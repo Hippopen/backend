@@ -5,6 +5,8 @@ const rateLimit = require('express-rate-limit');
 require('dotenv').config();
 
 const { sequelize } = require('./db');
+const initRelations = require('./models/relations');
+initRelations();
 const authRouter = require('./routes/auth');
 const booksRouter = require('./routes/books');
 const cartRouter = require('./routes/cart');

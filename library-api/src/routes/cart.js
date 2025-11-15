@@ -1,30 +1,26 @@
 const express = require('express');
 const router = express.Router();
 
-const CartItem = require('../models/CartItem');
-const Book = require('../models/Book');
+const CartItem  = require('../models/CartItem');
+const Book      = require('../models/Book');
 const Inventory = require('../models/Inventory');
-
-CartItem.belongsTo(Book,    { foreignKey: 'book_id' });
-Book.hasOne(Inventory,      { foreignKey: 'book_id' });
-Inventory.belongsTo(Book,   { foreignKey: 'book_id' });
 
 router.get('/', async (req, res) => {
   const user_id = req.user.user_id;
   const items = await CartItem.findAll({
     where: { user_id },
-    include: [{ model: Book, include: [Inventory] }]
+    include: [{ model: Book, as: 'book', include: [{ model: Inventory, as: 'inventory' }] }]
   });
 
   res.json(items.map(ci => ({
     book_id: ci.book_id,
     quantity: ci.quantity,
     book: {
-      title: ci.Book?.title,
-      author: ci.Book?.author,
-      cover_url: ci.Book?.cover_url,
-      total: ci.Book?.Inventory?.total ?? null,
-      available: ci.Book?.Inventory?.available ?? null
+      title: ci.book?.title,
+      author: ci.book?.author,
+      cover_url: ci.book?.cover_url,
+      total: ci.book?.inventory?.total ?? null,
+      available: ci.book?.inventory?.available ?? null
     }
   })));
 });
