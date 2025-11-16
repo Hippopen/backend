@@ -3,31 +3,34 @@ const { Op } = require('sequelize');
 const Loan = require('../models/Loan');
 const Invoice = require('../models/Invoice');
 
-const FEE = Number(process.env.FEE_OVERDUE_PER_DAY_VND || 10000);
+const FEE = Number(process.env.FEE_OVERDUE_PER_DAY_VND || 5000);
 
 async function runOverdueSweep() {
-  const today = new Date();
+  const startOfToday = new Date();
+  startOfToday.setHours(0,0,0,0);
+  console.log('[overdue] sweep start at', new Date().toISOString());
 
   const loans = await Loan.findAll({
-    where: { status: { [Op.in]: ['borrowed','overdue'] }, due_date: { [Op.lt]: today } },
+    where: {
+      status: { [Op.in]: ['borrowed','overdue'] },
+      due_date: { [Op.lt]: startOfToday }
+    },
     attributes: ['loan_id','user_id','due_date','status','borrow_at']
   });
 
   for (const l of loans) {
-    const days = Math.max(0, Math.ceil((today - new Date(l.due_date)) / (24*3600*1000)));
+    const days = Math.max(0, Math.ceil((startOfToday - new Date(l.due_date)) / (24*3600*1000)));
     const amount = days * FEE;
 
     if (l.status !== 'overdue') { l.status = 'overdue'; await l.save(); }
 
     const [inv, created] = await Invoice.findOrCreate({
       where: { loan_id: l.loan_id, type: 'overdue' },
-      defaults: {
-        user_id: l.user_id, days_overdue: days, amount_vnd: amount,
-        issued_at: l.due_date, status: 'unpaid'
-      }
+      defaults: { user_id: l.user_id, days_overdue: days, amount_vnd: amount, issued_at: l.due_date, status: 'unpaid' }
     });
     if (!created && inv.status === 'unpaid') {
-      inv.days_overdue = days; inv.amount_vnd = amount;
+      inv.days_overdue = days;
+      inv.amount_vnd = amount;
       await inv.save();
     }
   }
@@ -37,7 +40,7 @@ async function runOverdueSweep() {
 function startOverdueJob() {
   const cronExpr = process.env.JOB_OVERDUE_CRON || '0 2 * * *';
   console.log('[overdue] starting job with', { cronExpr, fee: FEE });
-  runOverdueSweep().catch(console.error);
+  runOverdueSweep().catch(console.error); // chạy ngay khi boot
   cron.schedule(cronExpr, () => runOverdueSweep().catch(console.error));
 }
 

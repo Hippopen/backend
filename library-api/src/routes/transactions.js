@@ -8,7 +8,6 @@ const router = express.Router();
 router.get('/', async (req, res) => {
   const { from, to, type } = req.query;
   const where = { user_id: req.user.user_id };
-
   if (type) where.type = type;
   if (from || to) {
     where.created_at = {};
@@ -18,7 +17,7 @@ router.get('/', async (req, res) => {
 
   const rows = await Transaction.findAll({
     where,
-    include: [{ model: Invoice, as: 'invoice', attributes: ['invoice_id', 'loan_id', 'type', 'status', 'amount_vnd'] }],
+    include: [{ model: Invoice, as: 'invoice', attributes: ['invoice_id','loan_id','type','status','amount_vnd'] }],
     order: [['txn_id', 'DESC']]
   });
 

@@ -12,6 +12,12 @@ const Invoice = sequelize.define('Invoice', {
   issued_at:    { type: DataTypes.DATE },
   paid_at:      { type: DataTypes.DATE },
   note:         { type: DataTypes.TEXT }
-}, { tableName: 'invoices' });
+}, {
+  tableName: 'invoices',
+  underscored: true,
+  timestamps: true,
+  createdAt: 'created_at',
+  updatedAt: 'updated_at'
+});
 
 module.exports = Invoice;

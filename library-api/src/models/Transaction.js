@@ -5,7 +5,7 @@ const Transaction = sequelize.define('Transaction', {
   txn_id:       { type: DataTypes.BIGINT, primaryKey: true, autoIncrement: true },
   user_id:      { type: DataTypes.BIGINT, allowNull: false },
   loan_id:      { type: DataTypes.BIGINT, allowNull: false },
-  invoice_id:   { type: DataTypes.BIGINT, allowNull: true },    // đã thêm ở migration 05
+  invoice_id:   { type: DataTypes.BIGINT, allowNull: true },
   loan_item_id: { type: DataTypes.BIGINT, allowNull: true },
 
   type:   { type: DataTypes.ENUM('overdue_fee','damage_fee','lost_fee','payment'), allowNull: false },
@@ -20,13 +20,13 @@ const Transaction = sequelize.define('Transaction', {
   paid_at:  { type: DataTypes.DATE },
 
   created_at: { type: DataTypes.DATE, defaultValue: DataTypes.NOW },
-  updated_at: { type: DataTypes.DATE, defaultValue: DataTypes.NOW },
+  updated_at: { type: DataTypes.DATE, defaultValue: DataTypes.NOW }
 }, {
   tableName: 'transactions',
   underscored: true,
   timestamps: true,
   createdAt: 'created_at',
-  updatedAt: 'updated_at',
+  updatedAt: 'updated_at'
 });
 
 module.exports = Transaction;
