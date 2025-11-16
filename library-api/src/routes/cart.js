@@ -5,6 +5,21 @@ const CartItem  = require('../models/CartItem');
 const Book      = require('../models/Book');
 const Inventory = require('../models/Inventory');
 
+/**
+ * @openapi
+ * /cart:
+ *   get:
+ *     tags: [Cart]
+ *     summary: Lấy giỏ sách của user hiện tại
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Danh sách item trong giỏ
+ *       401:
+ *         description: Chưa đăng nhập / token lỗi
+ */
+
 router.get('/', async (req, res) => {
   const user_id = req.user.user_id;
   const items = await CartItem.findAll({
@@ -24,6 +39,38 @@ router.get('/', async (req, res) => {
     }
   })));
 });
+
+/**
+ * @openapi
+ * /cart:
+ *   post:
+ *     tags: [Cart]
+ *     summary: Thêm sách vào giỏ (hoặc tăng số lượng)
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [book_id]
+ *             properties:
+ *               book_id:
+ *                 type: integer
+ *               quantity:
+ *                 type: integer
+ *                 default: 1
+ *     responses:
+ *       201:
+ *         description: Cập nhật giỏ hàng thành công
+ *       400:
+ *         description: Thiếu book_id hoặc quantity <= 0
+ *       404:
+ *         description: Không tìm thấy sách
+ *       409:
+ *         description: Vượt quá số lượng còn lại trong kho
+ */
 
 router.post('/', async (req, res) => {
   const user_id = req.user.user_id;
@@ -47,6 +94,38 @@ router.post('/', async (req, res) => {
   res.status(201).json({ message: 'Cart updated' });
 });
 
+/**
+ * @openapi
+ * /cart:
+ *   put:
+ *     tags: [Cart]
+ *     summary: Cập nhật số lượng 1 item trong giỏ
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [book_id, quantity]
+ *             properties:
+ *               book_id:
+ *                 type: integer
+ *               quantity:
+ *                 type: integer
+ *                 description: 0 để xoá khỏi giỏ
+ *     responses:
+ *       200:
+ *         description: Cập nhật/xoá item thành công
+ *       400:
+ *         description: Thiếu book_id hoặc quantity
+ *       404:
+ *         description: Item không tồn tại trong giỏ
+ *       409:
+ *         description: Vượt quá số lượng còn lại trong kho
+ */
+
 router.put('/', async (req, res) => {
   const user_id = req.user.user_id;
   const { book_id, quantity } = req.body;
@@ -69,6 +148,25 @@ router.put('/', async (req, res) => {
   await item.save();
   res.json({ message: 'Cart updated' });
 });
+
+/**
+ * @openapi
+ * /cart/{book_id}:
+ *   delete:
+ *     tags: [Cart]
+ *     summary: Xoá 1 sách khỏi giỏ
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: book_id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: Xoá thành công (idempotent)
+ */
 
 router.delete('/:book_id', async (req, res) => {
   const user_id = req.user.user_id;

@@ -11,6 +11,29 @@ const Loan      = require('../models/Loan');
 const LoanItem  = require('../models/LoanItem');
 const Invoice = require('../models/Invoice');
 
+/**
+ * @openapi
+ * /checkout:
+ *   post:
+ *     tags: [Checkout]
+ *     summary: Checkout giỏ sách → tạo loan (status=pending)
+ *     description: >
+ *       Lấy tất cả item trong giỏ của user, kiểm tra tồn kho, trừ available
+ *       và tạo 1 loan pending. Cart được xoá sau khi tạo loan.
+ *       Chặn nếu user đang có invoice overdue chưa thanh toán.
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       201:
+ *         description: Đặt chỗ thành công, trả về loan_id + code
+ *       400:
+ *         description: Giỏ hàng rỗng
+ *       409:
+ *         description: Thiếu tồn kho hoặc có overdue invoice chưa thanh toán
+ *       500:
+ *         description: Lỗi server / transaction
+ */
+
 router.post('/', async (req, res) => {
   const user_id = req.user.user_id;
 

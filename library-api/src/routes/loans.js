@@ -13,6 +13,37 @@ const RENEW_DAYS = Number(process.env.POLICY_RENEW_DAYS || 7);
 const MAX_RENEW  = Number(process.env.POLICY_MAX_RENEW  || 3);
 const addDays = (d, n) => { const x = new Date(d); x.setDate(x.getDate() + n); return x; };
 
+/**
+ * @openapi
+ * /loans/{loan_id}/qr.png:
+ *   get:
+ *     tags: [Loans]
+ *     summary: Lấy QR code để pick up sách tại quầy
+ *     description: >
+ *       Trả về ảnh PNG QR code chứa pickup token.
+ *       Chỉ owner hoặc admin mới xem được.
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: loan_id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: Ảnh PNG QR code
+ *         content:
+ *           image/png:
+ *             schema:
+ *               type: string
+ *               format: binary
+ *       403:
+ *         description: Forbidden
+ *       404:
+ *         description: Loan không tồn tại
+ */
+
 router.get('/:loan_id/qr.png', async (req, res) => {
   const loan_id = Number(req.params.loan_id);
   const loan = await Loan.findByPk(loan_id);
@@ -40,6 +71,35 @@ if (process.env.ENABLE_QR_DEBUG === '1' && process.env.NODE_ENV !== 'production'
   });
 }
 
+/**
+ * @openapi
+ * /loans:
+ *   get:
+ *     tags: [Loans]
+ *     summary: Lấy danh sách tất cả loan của user hiện tại
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: status
+ *         schema:
+ *           type: string
+ *           description: Lọc theo status (pending, borrowed, returned, overdue, ...)
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 20
+ *       - in: query
+ *         name: offset
+ *         schema:
+ *           type: integer
+ *           default: 0
+ *     responses:
+ *       200:
+ *         description: Danh sách loan phân trang
+ */
+
 router.get('/', async (req, res) => {
   const user_id = req.user.user_id;
   const limit = Math.min(Number(req.query.limit || 20), 100);
@@ -65,6 +125,27 @@ router.get('/', async (req, res) => {
   });
 });
 
+/**
+ * @openapi
+ * /loans/{loan_id}:
+ *   get:
+ *     tags: [Loans]
+ *     summary: Xem chi tiết 1 loan (items, invoice, transactions… nếu có)
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: loan_id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: Chi tiết loan
+ *       404:
+ *         description: Không tìm thấy loan hoặc không thuộc về user
+ */
+
 router.get('/:loan_id', async (req, res) => {
   const loan_id = Number(req.params.loan_id);
   const loan = await Loan.findByPk(loan_id, { include: [{ model: LoanItem, as: 'items' }] });
@@ -74,6 +155,31 @@ router.get('/:loan_id', async (req, res) => {
   }
   res.json(loan);
 });
+
+/**
+ * @openapi
+ * /loans/{loan_id}/renew:
+ *   post:
+ *     tags: [Loans]
+ *     summary: User gia hạn thêm số ngày cho phép (POLICY_RENEW_DAYS)
+ *     description: >
+ *       Tăng due_date nếu số lần renew < MAX_RENEW và loan đang ở trạng thái borrowed/overdue.
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: loan_id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: Gia hạn thành công
+ *       400:
+ *         description: Không thể gia hạn (vượt MAX_RENEW, trạng thái không hợp lệ...)
+ *       404:
+ *         description: Loan không tồn tại
+ */
 
 router.post('/:loan_id/renew', async (req, res) => {
   const loan_id = Number(req.params.loan_id);

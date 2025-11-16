@@ -5,6 +5,35 @@ const Invoice = require('../models/Invoice');
 
 const router = express.Router();
 
+/**
+ * @openapi
+ * /transactions:
+ *   get:
+ *     tags: [Transactions]
+ *     summary: Lịch sử thanh toán của user
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: type
+ *         schema:
+ *           type: string
+ *           description: Loại giao dịch (payment, refund, ...)
+ *       - in: query
+ *         name: from
+ *         schema:
+ *           type: string
+ *           format: date
+ *       - in: query
+ *         name: to
+ *         schema:
+ *           type: string
+ *           format: date
+ *     responses:
+ *       200:
+ *         description: Danh sách transaction mới nhất trước
+ */
+
 router.get('/', async (req, res) => {
   const { from, to, type } = req.query;
   const where = { user_id: req.user.user_id };

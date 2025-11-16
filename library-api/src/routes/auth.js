@@ -9,14 +9,12 @@ const { generateToken, hashToken } = require('../utils/tokens');
 const User = require('../models/User');
 const UserToken = require('../models/UserToken');
 
-/* ---------- helpers ---------- */
 const normalizeEmail = (v) =>
   (typeof v === 'string' && v.trim() !== '' ? v.trim().toLowerCase() : undefined);
 
 const normalizePhone = (v) =>
   (typeof v === 'string' && v.trim() !== '' ? v.trim() : undefined);
 
-// (demo) “gửi” link: in ra console
 async function sendActivationLink(emailOrPhone, token) {
   const url = `${process.env.APP_BASE_URL || 'http://localhost:3000'}/auth/activate?token=${token}`;
   console.log('[Activation]', emailOrPhone, url);
@@ -28,7 +26,44 @@ async function sendResetLink(emailOrPhone, token) {
 
 /* ---------- routes ---------- */
 
-// POST /auth/register
+/**
+ * @openapi
+ * /auth/register:
+ *   post:
+ *     tags: [Auth]
+ *     summary: Đăng ký tài khoản mới
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [password]
+ *             properties:
+ *               email:
+ *                 type: string
+ *                 format: email
+ *                 description: Email (bắt buộc nếu không dùng phone)
+ *               phone:
+ *                 type: string
+ *                 description: Số điện thoại (bắt buộc nếu không dùng email)
+ *               password:
+ *                 type: string
+ *                 format: password
+ *               first_name:
+ *                 type: string
+ *               last_name:
+ *                 type: string
+ *     responses:
+ *       201:
+ *         description: Đăng ký thành công, trả về user_id
+ *       400:
+ *         description: Thiếu email/phone hoặc password
+ *       409:
+ *         description: Email/phone đã tồn tại
+ *       500:
+ *         description: Lỗi server
+ */
 router.post('/register', async (req, res) => {
   try {
     let { email, phone, password, first_name, last_name } = req.body;
@@ -40,7 +75,6 @@ router.post('/register', async (req, res) => {
       return res.status(400).json({ error: 'Missing email/phone or password' });
     }
 
-    // Chỉ kiểm tra những field thật sự được cung cấp
     const orConds = [];
     if (email) orConds.push({ email });
     if (phone) orConds.push({ phone });
@@ -83,7 +117,28 @@ router.post('/register', async (req, res) => {
   }
 });
 
-// GET /auth/activate?token=...
+/**
+ * @openapi
+ * /auth/activate:
+ *   get:
+ *     tags: [Auth]
+ *     summary: Kích hoạt tài khoản bằng token
+ *     parameters:
+ *       - in: query
+ *         name: token
+ *         schema:
+ *           type: string
+ *         required: true
+ *         description: Token kích hoạt đã gửi qua console/email/sms
+ *     responses:
+ *       200:
+ *         description: Kích hoạt thành công
+ *       400:
+ *         description: Token không hợp lệ hoặc hết hạn
+ *       500:
+ *         description: Lỗi server
+ */
+
 router.get('/activate', async (req, res) => {
   try {
     const raw = req.query.token;
@@ -111,7 +166,59 @@ router.get('/activate', async (req, res) => {
   }
 });
 
-// POST /auth/login
+/**
+ * @openapi
+ * /auth/login:
+ *   post:
+ *     tags: [Auth]
+ *     summary: Đăng nhập, trả về JWT access_token
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               email:
+ *                 type: string
+ *                 format: email
+ *               phone:
+ *                 type: string
+ *               password:
+ *                 type: string
+ *                 format: password
+ *             description: >
+ *               Truyền email + password HOẶC phone + password.
+ *     responses:
+ *       200:
+ *         description: Đăng nhập thành công
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 access_token:
+ *                   type: string
+ *                 token_type:
+ *                   type: string
+ *                   example: bearer
+ *                 user:
+ *                   type: object
+ *                   properties:
+ *                     user_id:
+ *                       type: integer
+ *                     role:
+ *                       type: string
+ *       400:
+ *         description: Thiếu thông tin đăng nhập
+ *       401:
+ *         description: Sai tài khoản hoặc mật khẩu
+ *       403:
+ *         description: Tài khoản chưa kích hoạt
+ *       500:
+ *         description: Lỗi server
+ */
+
 router.post('/login', async (req, res) => {
   try {
     let { email, phone, password } = req.body;
@@ -144,7 +251,35 @@ router.post('/login', async (req, res) => {
   }
 });
 
-// POST /auth/request-reset
+/**
+ * @openapi
+ * /auth/request-reset:
+ *   post:
+ *     tags: [Auth]
+ *     summary: Yêu cầu reset mật khẩu
+ *     description: >
+ *       Nếu account tồn tại, server sẽ tạo reset token (in ra console) và trả về message chung,
+ *       không tiết lộ user có tồn tại hay không.
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               email:
+ *                 type: string
+ *               phone:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Luôn trả message "If account exists..."
+ *       400:
+ *         description: Thiếu email/phone
+ *       500:
+ *         description: Lỗi server
+ */
+
 router.post('/request-reset', async (req, res) => {
   try {
     let { email, phone } = req.body;
@@ -178,7 +313,34 @@ router.post('/request-reset', async (req, res) => {
   }
 });
 
-// POST /auth/reset
+/**
+ * @openapi
+ * /auth/reset:
+ *   post:
+ *     tags: [Auth]
+ *     summary: Đặt lại mật khẩu bằng reset token
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [token, password]
+ *             properties:
+ *               token:
+ *                 type: string
+ *               password:
+ *                 type: string
+ *                 format: password
+ *     responses:
+ *       200:
+ *         description: Reset mật khẩu thành công
+ *       400:
+ *         description: Token không hợp lệ/hết hạn
+ *       500:
+ *         description: Lỗi server
+ */
+
 router.post('/reset', async (req, res) => {
   try {
     const { token, new_password } = req.body;

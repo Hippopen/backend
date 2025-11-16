@@ -28,9 +28,31 @@ const RETURNABLE_STATUSES = ['borrowed', 'overdue'];
 const POLICY_LOAN_DAYS    = Number(process.env.POLICY_LOAN_DAYS || 7);
 const POLICY_MAX_RENEW    = Number(process.env.POLICY_MAX_RENEW || 3);
 
-/* =========================================================
- * 1) SCAN QR: nhận token, trả thông tin phiếu để xác nhận
- * =======================================================*/
+/**
+ * @openapi
+ * /admin/scan:
+ *   post:
+ *     tags: [Admin]
+ *     summary: Quầy thủ thư quét QR / code để lấy thông tin loan pending
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               code:
+ *                 type: string
+ *                 description: Mã loan (hoặc token pick-up tuỳ implement)
+ *     responses:
+ *       200:
+ *         description: Thông tin loan + items để chuẩn bị giao sách
+ *       404:
+ *         description: Không tìm thấy loan
+ */
+
 router.post('/scan', async (req, res) => {
   try {
     const token = req.body.token || req.query.token;
@@ -54,9 +76,29 @@ router.post('/scan', async (req, res) => {
   }
 });
 
-/* =========================================================
- * 2) CONFIRM PICKUP: đổi reserved/pending -> borrowed
- * =======================================================*/
+/**
+ * @openapi
+ * /admin/loans/{loan_id}/confirm:
+ *   post:
+ *     tags: [Admin]
+ *     summary: Xác nhận cho mượn (từ pending → borrowed)
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: loan_id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: Loan được set sang borrowed, có borrow_at & due_date
+ *       400:
+ *         description: Loan không ở trạng thái hợp lệ
+ *       404:
+ *         description: Không tìm thấy loan
+ */
+
 router.post('/loans/:loan_id/confirm', async (req, res) => {
   const loan = await Loan.findByPk(req.params.loan_id, {
     include: [{ model: LoanItem, as: 'items' }],
@@ -77,9 +119,29 @@ router.post('/loans/:loan_id/confirm', async (req, res) => {
   return res.json({ message: 'Borrowed', loan_id: loan.loan_id, due_date: loan.due_date });
 });
 
-/* =========================================================
- * 3) RENEW: gia hạn (chặn nếu đã đạt max hoặc có invoice unpaid)
- * =======================================================*/
+/**
+ * @openapi
+ * /admin/loans/{loan_id}/renew:
+ *   post:
+ *     tags: [Admin]
+ *     summary: Admin gia hạn loan (ví dụ khi xử lý tại quầy)
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: loan_id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: Gia hạn thành công
+ *       400:
+ *         description: Không thể gia hạn
+ *       404:
+ *         description: Loan không tồn tại
+ */
+
 router.post('/loans/:loan_id/renew', async (req, res) => {
   const loan = await Loan.findByPk(req.params.loan_id);
   if (!loan) return res.status(404).json({ error: 'Loan not found' });
@@ -102,9 +164,27 @@ router.post('/loans/:loan_id/renew', async (req, res) => {
   return res.json({ message: 'Renewed', due_date: loan.due_date, renew_count: loan.renew_count });
 });
 
-/* =========================================================
- * 4) CANCEL: hủy phiếu reserved/pending, trả lại tồn kho
- * =======================================================*/
+/**
+ * @openapi
+ * /admin/loans/{loan_id}/cancel:
+ *   post:
+ *     tags: [Admin]
+ *     summary: Huỷ loan (trả lại stock đã giữ chỗ)
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: loan_id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: Loan bị huỷ
+ *       404:
+ *         description: Loan không tồn tại
+ */
+
 router.post('/loans/:loan_id/cancel', async (req, res) => {
   const loan = await Loan.findByPk(req.params.loan_id, {
     include: [{ model: LoanItem, as: 'items' }],
@@ -123,9 +203,27 @@ router.post('/loans/:loan_id/cancel', async (req, res) => {
   return res.json({ message: 'Cancelled', loan_id: loan.loan_id });
 });
 
-/* =========================================================
- * 5) RETURN: trả sách borrowed/overdue, cộng lại tồn kho
- * =======================================================*/
+/**
+ * @openapi
+ * /admin/loans/{loan_id}/return:
+ *   post:
+ *     tags: [Admin]
+ *     summary: Đánh dấu loan đã trả sách
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: loan_id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: Cập nhật return_at, status=returned
+ *       404:
+ *         description: Loan không tồn tại
+ */
+
 router.post('/loans/:loan_id/return', async (req, res) => {
   const loan = await Loan.findByPk(req.params.loan_id, {
     include: [{ model: LoanItem, as: 'items' }],
@@ -145,10 +243,43 @@ router.post('/loans/:loan_id/return', async (req, res) => {
   return res.json({ message: 'Returned', loan_id: loan.loan_id });
 });
 
-/* =========================================================
- * 6) INVOICES: list/filters cho admin
- *    GET /admin/invoices?status=&user_id=&loan_id=&from=&to=
- * =======================================================*/
+/**
+ * @openapi
+ * /admin/invoices:
+ *   get:
+ *     tags: [Admin]
+ *     summary: Admin xem danh sách invoice của tất cả user
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: status
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: type
+ *         schema:
+ *           type: string
+ *           description: overdue | damage | lost ...
+ *       - in: query
+ *         name: user_id
+ *         schema:
+ *           type: integer
+ *       - in: query
+ *         name: from
+ *         schema:
+ *           type: string
+ *           format: date
+ *       - in: query
+ *         name: to
+ *         schema:
+ *           type: string
+ *           format: date
+ *     responses:
+ *       200:
+ *         description: Danh sách invoice
+ */
+
 router.get('/invoices', async (req, res) => {
   const { status, user_id, loan_id, from, to } = req.query;
   const where = {};
@@ -172,10 +303,42 @@ router.get('/invoices', async (req, res) => {
   res.json({ count: invoices.length, rows: invoices });
 });
 
-/* =========================================================
- * 7) MARK PAID: thanh toán 1 invoice (tạo Transaction, trong transaction DB)
- *    POST /admin/invoices/:invoice_id/mark-paid
- * =======================================================*/
+/**
+ * @openapi
+ * /admin/invoices/{invoice_id}/mark-paid:
+ *   post:
+ *     tags: [Admin]
+ *     summary: Đánh dấu invoice đã thanh toán & tạo transaction
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: invoice_id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               provider:
+ *                 type: string
+ *                 example: cash
+ *               ref:
+ *                 type: string
+ *                 description: Mã hoá đơn/hoá đơn giấy, mã giao dịch POS...
+ *     responses:
+ *       200:
+ *         description: Đánh dấu paid & ghi transaction thành công
+ *       400:
+ *         description: Invoice không ở trạng thái unpaid
+ *       404:
+ *         description: Không tìm thấy invoice
+ */
+
 router.post('/invoices/:invoice_id/mark-paid', async (req, res) => {
   const id  = Number(req.params.invoice_id);
   const inv = await Invoice.findByPk(id);
@@ -219,10 +382,27 @@ router.post('/invoices/:invoice_id/mark-paid', async (req, res) => {
   res.json({ message: 'Marked paid', invoice_id: inv.invoice_id, paid_at: inv.paid_at });
 });
 
-/* =========================================================
- * 8) VOID invoice (hủy hoá đơn – không thu tiền)
- *    POST /admin/invoices/:invoice_id/void
- * =======================================================*/
+/**
+ * @openapi
+ * /admin/invoices/{invoice_id}/void:
+ *   post:
+ *     tags: [Admin]
+ *     summary: Huỷ invoice (void) – dùng khi tạo nhầm
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: invoice_id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: Invoice được set status=void
+ *       404:
+ *         description: Không tìm thấy invoice
+ */
+
 router.post('/invoices/:invoice_id/void', async (req, res) => {
   const id  = Number(req.params.invoice_id);
   const inv = await Invoice.findByPk(id);
@@ -239,10 +419,38 @@ router.post('/invoices/:invoice_id/void', async (req, res) => {
   res.json({ message: 'Invoice voided', invoice_id: inv.invoice_id });
 });
 
-/* =========================================================
- * 9) TRANSACTIONS: list (lọc cơ bản)
- *    GET /admin/transactions?user_id=&invoice_id=&provider=&status=&from=&to=
- * =======================================================*/
+/**
+ * @openapi
+ * /admin/transactions:
+ *   get:
+ *     tags: [Admin]
+ *     summary: Xem lịch sử transaction của toàn hệ thống
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: user_id
+ *         schema:
+ *           type: integer
+ *       - in: query
+ *         name: type
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: from
+ *         schema:
+ *           type: string
+ *           format: date
+ *       - in: query
+ *         name: to
+ *         schema:
+ *           type: string
+ *           format: date
+ *     responses:
+ *       200:
+ *         description: Danh sách transaction
+ */
+
 router.get('/transactions', async (req, res) => {
   const { user_id, invoice_id, provider, status, from, to } = req.query;
   const where = {};
@@ -263,9 +471,33 @@ router.get('/transactions', async (req, res) => {
   res.json({ count: txs.length, rows: txs });
 });
 
-/* =========================================================
- * 10) REVIEWS moderation: show / hide / list pending
- * =======================================================*/
+/**
+ * @openapi
+ * /admin/reviews:
+ *   get:
+ *     tags: [Admin]
+ *     summary: Liệt kê review để moderation
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: status
+ *         schema:
+ *           type: string
+ *           description: pending | visible | hidden
+ *       - in: query
+ *         name: book_id
+ *         schema:
+ *           type: integer
+ *       - in: query
+ *         name: user_id
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: Danh sách review theo filter
+ */
+
 router.get('/reviews', async (req, res) => {
   const { status, book_id, user_id } = req.query;
   const where = {};
@@ -277,7 +509,27 @@ router.get('/reviews', async (req, res) => {
   res.json({ count: rows.length, rows });
 });
 
-// Ẩn review
+/**
+ * @openapi
+ * /admin/reviews/{review_id}/hide:
+ *   put:
+ *     tags: [Admin]
+ *     summary: Ẩn review (status=hidden)
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: review_id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: Ẩn review thành công
+ *       404:
+ *         description: Review không tồn tại
+ */
+
 router.put('/reviews/:review_id/hide', async (req, res) => {
   const review = await Review.findByPk(req.params.review_id);
   if (!review) return res.status(404).json({ error: 'Review not found' });
@@ -286,7 +538,27 @@ router.put('/reviews/:review_id/hide', async (req, res) => {
   res.json({ message: 'Review hidden', review_id: review.review_id });
 });
 
-// Hiện/duyệt review
+/**
+ * @openapi
+ * /admin/reviews/{review_id}/show:
+ *   put:
+ *     tags: [Admin]
+ *     summary: Duyệt / hiện review (status=visible)
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: review_id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: Hiện review thành công
+ *       404:
+ *         description: Review không tồn tại
+ */
+
 router.put('/reviews/:review_id/show', async (req, res) => {
   const review = await Review.findByPk(req.params.review_id);
   if (!review) return res.status(404).json({ error: 'Review not found' });
@@ -295,9 +567,21 @@ router.put('/reviews/:review_id/show', async (req, res) => {
   res.json({ message: 'Review visible', review_id: review.review_id });
 });
 
-/* =========================================================
- * 11) Chạy job overdue thủ công (đối soát / test)
- * =======================================================*/
+/**
+ * @openapi
+ * /admin/jobs/run-overdue:
+ *   post:
+ *     tags: [Admin]
+ *     summary: Chạy job tính phí overdue thủ công (dùng để test/đối soát)
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Job chạy xong, trả về số invoice được cập nhật
+ *       500:
+ *         description: Job lỗi
+ */
+
 router.post('/jobs/run-overdue', async (req, res) => {
   try {
     const result = await runOverdueJob(); // trả { updated }

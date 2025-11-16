@@ -3,6 +3,10 @@ const express = require('express');
 const helmet = require('helmet');
 const cors = require('cors');
 
+const swaggerUi = require('swagger-ui-express');
+const swaggerDocument = require('./openapi.json');
+const swaggerSpec = require('./swagger');
+
 const rateLimit = require('express-rate-limit');
 const { sequelize } = require('./db');
 
@@ -30,6 +34,10 @@ app.use(helmet());
 app.use(cors());
 app.use(express.json({ limit: '1mb' }));
 
+app.get('/', (req, res) => {
+  res.redirect('/docs');
+});
+app.use('/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 app.use('/admin', authGuard, adminRouter);
 app.use('/auth', authRouter);
 app.use('/books', booksRouter);

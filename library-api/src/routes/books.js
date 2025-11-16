@@ -7,6 +7,45 @@ const Book = require('../models/Book');
 const Inventory = require('../models/Inventory');
 const Genre = require('../models/Genre');
 
+/**
+ * @openapi
+ * /books:
+ *   get:
+ *     tags: [Books]
+ *     summary: Tìm kiếm & phân trang danh sách sách
+ *     parameters:
+ *       - in: query
+ *         name: search
+ *         schema:
+ *           type: string
+ *         description: Tìm theo tiêu đề hoặc tác giả (LIKE)
+ *       - in: query
+ *         name: genre_id
+ *         schema:
+ *           type: integer
+ *         description: Lọc theo thể loại
+ *       - in: query
+ *         name: in_stock
+ *         schema:
+ *           type: boolean
+ *         description: Chỉ lấy sách còn hàng
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           default: 1
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 20
+ *     responses:
+ *       200:
+ *         description: Danh sách sách phân trang
+ *       500:
+ *         description: Lỗi server
+ */
+
 router.get('/', async (req, res) => {
   try {
     const { search, genre_id, page = 1, limit = 20, in_stock } = req.query;

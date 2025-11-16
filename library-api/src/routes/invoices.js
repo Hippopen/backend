@@ -7,10 +7,57 @@ const Loan = require('../models/Loan');
 const router = express.Router();
 
 /**
- * GET /invoices
- * Liệt kê hoá đơn của chính user (có thể lọc status, thời gian)
- * Query: ?status=&from=&to=
+ * @openapi
+ * /invoices:
+ *   get:
+ *     tags: [Invoices]
+ *     summary: Liệt kê hoá đơn của user hiện tại
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: status
+ *         schema:
+ *           type: string
+ *           description: unpaid | paid | void ...
+ *       - in: query
+ *         name: from
+ *         schema:
+ *           type: string
+ *           format: date
+ *       - in: query
+ *         name: to
+ *         schema:
+ *           type: string
+ *           format: date
+ *     responses:
+ *       200:
+ *         description: Danh sách invoice
  */
+
+/**
+ * @openapi
+ * /invoices/{invoice_id}:
+ *   get:
+ *     tags: [Invoices]
+ *     summary: Xem chi tiết 1 invoice
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: invoice_id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: Chi tiết invoice
+ *       403:
+ *         description: Không phải owner và không phải admin
+ *       404:
+ *         description: Không tìm thấy invoice
+ */
+
 router.get('/', async (req, res) => {
   const { status, from, to } = req.query;
   const where = { user_id: req.user.user_id };
@@ -32,9 +79,28 @@ router.get('/', async (req, res) => {
 });
 
 /**
- * GET /invoices/:invoice_id
- * Xem chi tiết 1 hoá đơn (user sở hữu hoặc admin)
+ * @openapi
+ * /invoices/{invoice_id}:
+ *   get:
+ *     tags: [Invoices]
+ *     summary: Xem chi tiết 1 invoice
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: invoice_id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: Chi tiết invoice
+ *       403:
+ *         description: Không phải owner và không phải admin
+ *       404:
+ *         description: Không tìm thấy invoice
  */
+
 router.get('/:invoice_id', async (req, res) => {
   const inv = await Invoice.findByPk(req.params.invoice_id, {
     include: [{ model: Loan, as: 'loan' }],

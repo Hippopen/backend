@@ -14,6 +14,33 @@ function clampRating(n) {
   return Math.max(1, Math.min(5, Math.floor(x)));
 }
 
+/**
+ * @openapi
+ * /reviews/book/{book_id}:
+ *   get:
+ *     tags: [Reviews]
+ *     summary: Lấy danh sách review của 1 sách (chỉ review visible)
+ *     parameters:
+ *       - in: path
+ *         name: book_id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           default: 1
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 20
+ *     responses:
+ *       200:
+ *         description: Danh sách review
+ */
+
 router.get('/book/:book_id', async (req, res) => {
   const book_id = Number(req.params.book_id);
   const limit = Math.min(Number(req.query.limit || 20), 100);
@@ -38,6 +65,39 @@ router.get('/book/:book_id', async (req, res) => {
     items: rows
   });
 });
+
+/**
+ * @openapi
+ * /reviews:
+ *   post:
+ *     tags: [Reviews]
+ *     summary: User tạo review cho 1 sách
+ *     description: >
+ *       Mỗi user chỉ có 1 review / book. Nếu tồn tại có thể update tuỳ implement.
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [book_id, rating]
+ *             properties:
+ *               book_id:
+ *                 type: integer
+ *               rating:
+ *                 type: integer
+ *                 minimum: 1
+ *                 maximum: 5
+ *               comment:
+ *                 type: string
+ *     responses:
+ *       201:
+ *         description: Tạo review thành công
+ *       400:
+ *         description: Dữ liệu không hợp lệ
+ */
 
 router.post('/', async (req, res) => {
   const user_id = req.user.user_id;
@@ -66,6 +126,38 @@ router.post('/', async (req, res) => {
   }
 });
 
+/**
+ * @openapi
+ * /reviews/{review_id}:
+ *   put:
+ *     tags: [Reviews]
+ *     summary: User chỉnh sửa review của mình
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: review_id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               rating:
+ *                 type: integer
+ *               comment:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Cập nhật thành công
+ *       404:
+ *         description: Review không tồn tại hoặc không thuộc về user
+ */
+
 router.put('/:id', async (req, res) => {
   const user_id = req.user.user_id;
   const id = Number(req.params.id);
@@ -84,6 +176,27 @@ router.put('/:id', async (req, res) => {
   await review.update(updates);
   res.json({ message: 'Updated' });
 });
+
+/**
+ * @openapi
+ * /reviews/{review_id}:
+ *   delete:
+ *     tags: [Reviews]
+ *     summary: User xoá review của mình
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: review_id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: Xoá thành công
+ *       404:
+ *         description: Review không tồn tại hoặc không thuộc về user
+ */
 
 router.delete('/:id', async (req, res) => {
   const user_id = req.user.user_id;

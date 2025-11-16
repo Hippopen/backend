@@ -4,6 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
+    "start": "node src/server.js", 
     "test": "echo \"Error: no test specified\" && exit 1",
     "db:migrate": "sequelize-cli db:migrate",
     "db:seed": "sequelize-cli db:seed:all"
@@ -23,9 +24,13 @@
     "jsonwebtoken": "^9.0.2",
     "mysql2": "^3.15.3",
     "node-cron": "^4.2.1",
+    "nodemailer": "^7.0.10",
     "qrcode": "^1.5.4",
     "sequelize": "^6.37.7",
-    "uuid": "^13.0.0"
+    "swagger-jsdoc": "^6.2.8",
+    "swagger-ui-express": "^5.0.1",
+    "uuid": "^13.0.0",
+    "yamljs": "^0.3.0"
   },
   "devDependencies": {
     "sequelize-cli": "^6.6.3"
