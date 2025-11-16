@@ -22,6 +22,7 @@
     "helmet": "^8.1.0",
     "jsonwebtoken": "^9.0.2",
     "mysql2": "^3.15.3",
+    "node-cron": "^4.2.1",
     "qrcode": "^1.5.4",
     "sequelize": "^6.37.7",
     "uuid": "^13.0.0"

@@ -9,6 +9,7 @@ const CartItem  = require('../models/CartItem');
 const Inventory = require('../models/Inventory');
 const Loan      = require('../models/Loan');
 const LoanItem  = require('../models/LoanItem');
+const Invoice = require('../models/Invoice');
 
 router.post('/', async (req, res) => {
   const user_id = req.user.user_id;
@@ -18,6 +19,13 @@ router.post('/', async (req, res) => {
 
   const t = await sequelize.transaction();
   try {
+    const unpaid = await Invoice.count({
+      where: { user_id: req.user.user_id, status: 'unpaid', type: 'overdue' }
+    });
+    if (unpaid > 0) {
+      return res.status(409).json({ error: 'You have an unpaid overdue fee. Please pay for it before continue borrowing!' });
+    }
+    
     const bookIds = cart.map(c => c.book_id);
     const invs = await Inventory.findAll({
       where: { book_id: { [Op.in]: bookIds } },

@@ -1,20 +1,16 @@
 const express = require('express');
 const router = express.Router();
-const { Op, fn, col, literal } = require('sequelize');
+const { Op, literal } = require('sequelize');
 
+const { sequelize } = require('../db');
 const Book = require('../models/Book');
 const Inventory = require('../models/Inventory');
 const Genre = require('../models/Genre');
-const BookGenre = require('../models/BookGenre');
-
-Book.hasOne(Inventory, { foreignKey: 'book_id' });
-Inventory.belongsTo(Book, { foreignKey: 'book_id' });
-Book.belongsToMany(Genre, { through: BookGenre, foreignKey: 'book_id', otherKey: 'genre_id' });
-Genre.belongsToMany(Book, { through: BookGenre, foreignKey: 'genre_id', otherKey: 'book_id' });
 
 router.get('/', async (req, res) => {
   try {
     const { search, genre_id, page = 1, limit = 20, in_stock } = req.query;
+
     const where = {};
     if (search) {
       const s = `%${search}%`;
@@ -22,11 +18,13 @@ router.get('/', async (req, res) => {
     }
 
     const include = [
-      { model: Inventory, required: !!in_stock, attributes: ['total','available'] },
+      { model: Inventory, as: 'inventory', required: !!in_stock, attributes: ['total','available'] },
     ];
+
     if (genre_id) {
       include.push({
         model: Genre,
+        as: 'genres',
         where: { genre_id: Number(genre_id) },
         through: { attributes: [] },
         attributes: ['genre_id','name']
@@ -34,19 +32,35 @@ router.get('/', async (req, res) => {
     } else {
       include.push({
         model: Genre,
+        as: 'genres',
         through: { attributes: [] },
         attributes: ['genre_id','name']
       });
     }
 
     const offset = (Number(page) - 1) * Number(limit);
+
     const { rows, count } = await Book.findAndCountAll({
       where,
       include,
       offset,
       limit: Number(limit),
       order: [['title','ASC']],
-      distinct: true
+      distinct: true,
+      attributes: {
+        include: [
+          [literal(
+            `(SELECT ROUND(AVG(rating),2)
+              FROM reviews r
+              WHERE r.book_id = Book.book_id AND r.status='visible')`
+          ), 'avg_rating'],
+          [literal(
+            `(SELECT COUNT(*)
+              FROM reviews r
+              WHERE r.book_id = Book.book_id AND r.status='visible')`
+          ), 'review_count'],
+        ]
+      }
     });
 
     res.json({

@@ -7,6 +7,8 @@ require('dotenv').config();
 const { sequelize } = require('./db');
 const initRelations = require('./models/relations');
 initRelations();
+const { startOverdueJob } = require('./jobs/overdue');
+if (process.env.ENABLE_JOBS === '1') startOverdueJob();
 const authRouter = require('./routes/auth');
 const booksRouter = require('./routes/books');
 const cartRouter = require('./routes/cart');
@@ -15,6 +17,8 @@ const loansRouter = require('./routes/loans');
 const adminRouter = require('./routes/admin');
 const authGuard = require('./middleware/auth');
 const adminOnly = require('./middleware/admin');
+const reviewsRouter = require('./routes/reviews');
+const invoicesRouter = require('./routes/invoices');
 
 const app = express();
 app.use(helmet());
@@ -34,5 +38,7 @@ app.use('/cart', authGuard, cartRouter);
 app.use('/checkout', authGuard, checkoutRouter);
 app.use('/loans', authGuard, loansRouter);
 app.use('/admin', authGuard, adminOnly, adminRouter);
+app.use('/reviews', authGuard, reviewsRouter);
+app.use('/invoices', authGuard, invoicesRouter);
 
 module.exports = app;

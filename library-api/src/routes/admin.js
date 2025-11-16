@@ -6,6 +6,9 @@ const { verifyPickupToken } = require('../utils/pickupToken');
 const Loan = require('../models/Loan');
 const LoanItem = require('../models/LoanItem');
 const Inventory = require('../models/Inventory');
+const Review = require('../models/Review');
+const Invoice = require('../models/Invoice');
+const Txn = require('../models/Transaction'); 
 
 const router = express.Router();
 
@@ -111,6 +114,61 @@ router.post('/loans/:loan_id/cancel', async (req, res) => {
     console.error(e);
     res.status(500).json({ error: 'Cancel failed' });
   }
+});
+
+router.post('/reviews/:id/hide', async (req, res) => {
+  const id = Number(req.params.id);
+  const rv = await Review.findByPk(id);
+  if (!rv) return res.status(404).json({ error: 'Not found' });
+  await rv.update({ status: 'hidden' });
+  res.json({ message: 'Hidden' });
+});
+
+router.post('/reviews/:id/show', async (req, res) => {
+  const id = Number(req.params.id);
+  const rv = await Review.findByPk(id);
+  if (!rv) return res.status(404).json({ error: 'Not found' });
+  await rv.update({ status: 'visible' });
+  res.json({ message: 'Visible' });
+});
+
+// mark-paid
+router.post('/invoices/:id/mark-paid', async (req, res) => {
+  const inv = await Invoice.findByPk(Number(req.params.id));
+  if (!inv) return res.status(404).json({ error: 'Invoice not found' });
+  if (inv.status !== 'unpaid') return res.status(409).json({ error: 'Invoice is not unpaid' });
+
+  await Txn.create({
+    user_id: inv.user_id,
+    loan_id: inv.loan_id,
+    invoice_id: inv.invoice_id,
+    type: 'payment',
+    status: 'succeeded',
+    amount_vnd: inv.amount_vnd,
+    currency: 'VND',
+    provider: req.body?.provider || 'cash',
+    tx_ref: req.body?.tx_ref || `INV:${inv.invoice_id}`,
+    paid_at: new Date()
+  });
+
+  inv.status = 'paid';
+  inv.paid_at = new Date();
+  await inv.save();
+
+  res.json({ message: 'Invoice marked as paid', invoice_id: inv.invoice_id });
+});
+
+// void
+router.post('/invoices/:id/void', async (req, res) => {
+  const inv = await Invoice.findByPk(Number(req.params.id));
+  if (!inv) return res.status(404).json({ error: 'Invoice not found' });
+  if (inv.status !== 'unpaid') return res.status(409).json({ error: 'Only unpaid can be voided' });
+
+  inv.status = 'void';
+  inv.note = req.body?.note || inv.note;
+  await inv.save();
+
+  res.json({ message: 'Invoice voided', invoice_id: inv.invoice_id });
 });
 
 module.exports = router;
