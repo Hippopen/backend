@@ -37,6 +37,7 @@ app.use(express.json({ limit: '1mb' }));
 app.get('/', (req, res) => {
   res.redirect('/docs');
 });
+app.get('/health', (req, res) => res.send('OK'));
 app.use('/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 app.use('/admin', authGuard, adminRouter);
 app.use('/auth', authRouter);
@@ -46,11 +47,9 @@ app.use('/checkout', authGuard, checkoutRouter);
 app.use('/loans', authGuard, loansRouter);
 app.use('/reviews', authGuard, reviewsRouter);
 
-// NEW mounts
 app.use('/invoices', authGuard, invoicesRouter);
 app.use('/transactions', authGuard, transactionsRouter);
 
-// Jobs
 if (process.env.ENABLE_JOBS === '1') startOverdueJob();
 
 module.exports = app;
