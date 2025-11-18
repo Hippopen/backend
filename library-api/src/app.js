@@ -15,6 +15,7 @@ initRelations();
 
 const authRouter = require('./routes/auth');
 const booksRouter = require('./routes/books');
+const adminBooksRouter = require('./routes/adminBooks');
 const cartRouter = require('./routes/cart');
 const checkoutRouter = require('./routes/checkout');
 const loansRouter = require('./routes/loans');
@@ -42,6 +43,7 @@ app.use('/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 app.use('/admin', authGuard, adminRouter);
 app.use('/auth', authRouter);
 app.use('/books', booksRouter);
+app.use('/admin/books', authGuard, adminBooksRouter);
 app.use('/cart', authGuard, cartRouter);
 app.use('/checkout', authGuard, checkoutRouter);
 app.use('/loans', authGuard, loansRouter);
