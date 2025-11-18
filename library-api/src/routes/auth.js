@@ -325,13 +325,18 @@ router.post('/request-reset', async (req, res) => {
  *         application/json:
  *           schema:
  *             type: object
- *             required: [token, password]
+ *             required: [token]
  *             properties:
  *               token:
  *                 type: string
  *               password:
  *                 type: string
  *                 format: password
+ *                 description: Mật khẩu mới (ưu tiên sử dụng trường này)
+ *               new_password:
+ *                 type: string
+ *                 format: password
+ *                 description: Alias cũ cho password, giữ lại để tương thích
  *     responses:
  *       200:
  *         description: Reset mật khẩu thành công
@@ -343,8 +348,9 @@ router.post('/request-reset', async (req, res) => {
 
 router.post('/reset', async (req, res) => {
   try {
-    const { token, new_password } = req.body;
-    if (!token || !new_password) return res.status(400).json({ error: 'Missing token or new_password' });
+    const { token, password, new_password } = req.body;
+    const nextPassword = typeof new_password === 'string' && new_password.length ? new_password : password;
+    if (!token || !nextPassword) return res.status(400).json({ error: 'Missing token or password' });
 
     const token_hash = hashToken(token);
     const ut = await UserToken.findOne({
@@ -358,7 +364,7 @@ router.post('/reset', async (req, res) => {
     if (!ut) return res.status(400).json({ error: 'Invalid/expired token' });
 
     await Promise.all([
-      User.update({ password_hash: await hash(new_password) }, { where: { user_id: ut.user_id } }),
+      User.update({ password_hash: await hash(nextPassword) }, { where: { user_id: ut.user_id } }),
       ut.update({ consumed_at: new Date() })
     ]);
     res.json({ message: 'Password updated' });

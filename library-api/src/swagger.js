@@ -1,6 +1,4 @@
-// swagger.js
 const swaggerJsdoc = require('swagger-jsdoc');
-
 const options = {
   definition: {
     openapi: '3.0.0',
@@ -20,7 +18,6 @@ const options = {
     }
   },
   apis: ['./src/routes/*.js']
-  // Nếu project bạn là src/routes/... thì sửa thành: ['./src/routes/*.js']
 };
 
 const swaggerSpec = swaggerJsdoc(options);
