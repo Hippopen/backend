@@ -5,6 +5,7 @@ const { sequelize } = require('../db');
 
 const adminOnly = require('../middleware/admin');
 const { verifyPickupToken } = require('../utils/pickupToken');
+const { hash } = require('../utils/password');
 
 const Book        = require('../models/Book');
 const Loan        = require('../models/Loan');
@@ -111,9 +112,9 @@ router.post('/scan', async (req, res) => {
  *           default: 0
  *     responses:
  *       200:
- *         description: Danh sA�ch loan
+ *         description: Danh sách loan
  *       500:
- *         description: L��-i server
+ *         description: Lỗi server
  */
 router.get('/loans', async (req, res) => {
   try {
@@ -173,6 +174,181 @@ router.get('/loans', async (req, res) => {
   } catch (e) {
     console.error('List loans error:', e);
     res.status(500).json({ error: 'Failed to load loans' });
+  }
+});
+
+/**
+ * @openapi
+ * /admin/users:
+ *   get:
+ *     tags: [Admin]
+ *     summary: Danh sách user role = user
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: search
+ *         schema:
+ *           type: string
+ *           description: Search theo email / phone / tên
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 50
+ *       - in: query
+ *         name: offset
+ *         schema:
+ *           type: integer
+ *           default: 0
+ *     responses:
+ *       200:
+ *         description: Danh sách user
+ */
+router.get('/users', async (req, res) => {
+  try {
+    let { search, limit = 50, offset = 0 } = req.query;
+    limit = Number(limit);
+    if (!Number.isInteger(limit) || limit <= 0) limit = 50;
+    limit = Math.min(limit, 200);
+    offset = Number(offset);
+    if (!Number.isInteger(offset) || offset < 0) offset = 0;
+
+    const where = { role: 'user' };
+    if (typeof search === 'string' && search.trim() !== '') {
+      const pattern = `%${search.trim()}%`;
+      where[Op.or] = [
+        { email: { [Op.like]: pattern } },
+        { phone: { [Op.like]: pattern } },
+        { first_name: { [Op.like]: pattern } },
+        { last_name: { [Op.like]: pattern } }
+      ];
+    }
+
+    const result = await User.findAndCountAll({
+      where,
+      attributes: { exclude: ['password_hash', 'role'] },
+      limit,
+      offset,
+      order: [['user_id', 'DESC']],
+      distinct: true
+    });
+
+    res.json({ count: result.count, rows: result.rows, limit, offset });
+  } catch (e) {
+    console.error('List admin users error:', e);
+    res.status(500).json({ error: 'Failed to load users' });
+  }
+});
+
+/**
+ * @openapi
+ * /admin/users/{user_id}:
+ *   put:
+ *     tags: [Admin]
+ *     summary: Cập nhật user (first/last name, password)
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: user_id
+ *         schema:
+ *           type: integer
+ *         required: true
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               first_name:
+ *                 type: string
+ *               last_name:
+ *                 type: string
+ *               password:
+ *                 type: string
+ *                 minLength: 6
+ *     responses:
+ *       200:
+ *         description: User sau khi cập nhật
+ *       400:
+ *         description: Thiếu hoặc sai dữ liệu
+ *       404:
+ *         description: User không tồn tại
+ */
+router.put('/users/:user_id', async (req, res) => {
+  try {
+    const user_id = Number(req.params.user_id);
+    if (!Number.isInteger(user_id)) return res.status(400).json({ error: 'Invalid user_id' });
+
+    const user = await User.findOne({ where: { user_id, role: 'user' } });
+    if (!user) return res.status(404).json({ error: 'User not found' });
+
+    const { first_name, last_name, password } = req.body || {};
+    let updated = false;
+
+    if (typeof first_name === 'string') {
+      user.first_name = first_name.trim();
+      updated = true;
+    }
+    if (typeof last_name === 'string') {
+      user.last_name = last_name.trim();
+      updated = true;
+    }
+    if (password !== undefined) {
+      if (typeof password !== 'string' || password.length < 6) {
+        return res.status(400).json({ error: 'Password must be at least 6 characters' });
+      }
+      user.password_hash = await hash(password);
+      updated = true;
+    }
+    if (!updated) return res.status(400).json({ error: 'Nothing to update' });
+
+    await user.save();
+    const plain = user.toJSON();
+    delete plain.password_hash;
+    delete plain.role;
+    res.json(plain);
+  } catch (e) {
+    console.error('Update admin user error:', e);
+    res.status(500).json({ error: 'Failed to update user' });
+  }
+});
+
+/**
+ * @openapi
+ * /admin/users/{user_id}:
+ *   delete:
+ *     tags: [Admin]
+ *     summary: Xoá user role=user
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: user_id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: Đã xoá
+ *       404:
+ *         description: User không tồn tại
+ */
+router.delete('/users/:user_id', async (req, res) => {
+  try {
+    const user_id = Number(req.params.user_id);
+    if (!Number.isInteger(user_id)) return res.status(400).json({ error: 'Invalid user_id' });
+
+    const user = await User.findOne({ where: { user_id, role: 'user' } });
+    if (!user) return res.status(404).json({ error: 'User not found' });
+
+    await user.destroy();
+    res.json({ message: 'Deleted' });
+  } catch (e) {
+    console.error('Delete admin user error:', e);
+    res.status(500).json({ error: 'Failed to delete user' });
   }
 });
 

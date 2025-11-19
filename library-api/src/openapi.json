@@ -1068,7 +1068,7 @@
         }
       }
     },
-    "/admin/loans/{loan_id}/confirm": {
+    "/admin/users": {\r\n      "get": {\r\n        "summary": "Danh sach user",\r\n        "tags": [\r\n          "Admin"\r\n        ],\r\n        "security": [\r\n          {\r\n            "bearerAuth": []\r\n          }\r\n        ],\r\n        "parameters": [\r\n          {\r\n            "name": "search",\r\n            "in": "query",\r\n            "schema": {\r\n              "type": "string"\r\n            },\r\n            "description": "Search theo email/phone/name"\r\n          },\r\n          {\r\n            "name": "limit",\r\n            "in": "query",\r\n            "schema": {\r\n              "type": "integer",\r\n              "default": 50\r\n            }\r\n          },\r\n          {\r\n            "name": "offset",\r\n            "in": "query",\r\n            "schema": {\r\n              "type": "integer",\r\n              "default": 0\r\n            }\r\n          }\r\n        ],\r\n        "responses": {\r\n          "200": {\r\n            "description": "OK"\r\n          }\r\n        }\r\n      }\r\n    },\r\n    "/admin/users/{user_id}": {\r\n      "put": {\r\n        "summary": "Cap nhat user",\r\n        "tags": [\r\n          "Admin"\r\n        ],\r\n        "security": [\r\n          {\r\n            "bearerAuth": []\r\n          }\r\n        ],\r\n        "parameters": [\r\n          {\r\n            "name": "user_id",\r\n            "in": "path",\r\n            "required": true,\r\n            "schema": {\r\n              "type": "integer"\r\n            }\r\n          }\r\n        ],\r\n        "requestBody": {\r\n          "required": true,\r\n          "content": {\r\n            "application/json": {\r\n              "schema": {\r\n                "type": "object",\r\n                "properties": {\r\n                  "first_name": { "type": "string" },\r\n                  "last_name": { "type": "string" },\r\n                  "password": { "type": "string", "minLength": 6 }\r\n                }\r\n              }\r\n            }\r\n          }\r\n        },\r\n        "responses": {\r\n          "200": { "description": "OK" },\r\n          "400": { "description": "Bad request" },\r\n          "404": { "description": "Not found" }\r\n        }\r\n      },\r\n      "delete": {\r\n        "summary": "Xoa user",\r\n        "tags": [\r\n          "Admin"\r\n        ],\r\n        "security": [\r\n          {\r\n            "bearerAuth": []\r\n          }\r\n        ],\r\n        "parameters": [\r\n          {\r\n            "name": "user_id",\r\n            "in": "path",\r\n            "required": true,\r\n            "schema": {\r\n              "type": "integer"\r\n            }\r\n          }\r\n        ],\r\n        "responses": {\r\n          "200": { "description": "OK" },\r\n          "404": { "description": "Not found" }\r\n        }\r\n      }\r\n    },\r\n    "/admin/loans/{loan_id}/confirm": {
       "post": {
         "summary": "Admin xÃ¡c nháº­n cho mÆ°á»£n (checkout loan)",
         "tags": [
@@ -1442,5 +1442,6 @@
     }
   }
 }
+
 
 

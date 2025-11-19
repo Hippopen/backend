@@ -24,7 +24,7 @@ router.use((req, res, next) => {
  * /admin/books:
  *   get:
  *     tags: [Admin]
- *     summary: Danh sA�ch sA�ch
+ *     summary: Danh sách sách
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -32,7 +32,7 @@ router.use((req, res, next) => {
  *         name: search
  *         schema:
  *           type: string
- *           description: T��` khA�o search theo title/author
+ *           description: Tài khoản search theo title/author
  *       - in: query
  *         name: limit
  *         schema:
@@ -45,7 +45,7 @@ router.use((req, res, next) => {
  *           default: 0
  *     responses:
  *       200:
- *         description: Danh sA�ch sA�ch
+ *         description: Danh sách sách
  */
 router.get('/', async (req, res) => {
   try {
