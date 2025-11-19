@@ -7,6 +7,7 @@ const { hash, compare } = require('../utils/password');
 const { generateToken, hashToken } = require('../utils/tokens');
 const { sendMail } = require('../utils/mailer');
 const { sendSms } = require('../utils/sms');
+const authGuard = require('../middleware/auth');
 
 const User = require('../models/User');
 const UserToken = require('../models/UserToken');
@@ -283,6 +284,119 @@ router.post('/login', async (req, res) => {
       token_type: 'bearer',
       user: { user_id: user.user_id, role: user.role }
     });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ error: 'Internal error' });
+  }
+});
+
+/**
+ * @openapi
+ * /auth/profile:
+ *   put:
+ *     tags: [Auth]
+ *     summary: Cập nhật họ tên user
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               first_name:
+ *                 type: string
+ *               last_name:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Cập nhật thành công
+ *       400:
+ *         description: Thiếu thông tin cần cập nhật
+ *       401:
+ *         description: Chưa đăng nhập
+ *       404:
+ *         description: User không tồn tại
+ *       500:
+ *         description: Lỗi server
+ */
+router.put('/profile', authGuard, async (req, res) => {
+  try {
+    const { first_name, last_name } = req.body || {};
+    const updates = {};
+    if (typeof first_name === 'string') updates.first_name = first_name.trim() || null;
+    if (typeof last_name === 'string') updates.last_name = last_name.trim() || null;
+    if (!Object.keys(updates).length) {
+      return res.status(400).json({ error: 'Nothing to update' });
+    }
+
+    const [affected] = await User.update(updates, { where: { user_id: req.user.user_id } });
+    if (!affected) return res.status(404).json({ error: 'User not found' });
+
+    const fresh = await User.findByPk(req.user.user_id, {
+      attributes: ['user_id', 'email', 'phone', 'first_name', 'last_name']
+    });
+    res.json({ message: 'Profile updated', user: fresh });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ error: 'Internal error' });
+  }
+});
+
+/**
+ * @openapi
+ * /auth/password:
+ *   put:
+ *     tags: [Auth]
+ *     summary: Đổi mật khẩu bằng current password
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [current_password, new_password]
+ *             properties:
+ *               current_password:
+ *                 type: string
+ *                 format: password
+ *               new_password:
+ *                 type: string
+ *                 format: password
+ *     responses:
+ *       200:
+ *         description: Đổi mật khẩu thành công
+ *       400:
+ *         description: Thiếu thông tin hoặc current password không đúng
+ *       401:
+ *         description: Chưa đăng nhập
+ *       404:
+ *         description: User không tồn tại
+ *       500:
+ *         description: Lỗi server
+ */
+router.put('/password', authGuard, async (req, res) => {
+  try {
+    const { current_password, new_password } = req.body || {};
+    if (!current_password || !new_password) {
+      return res.status(400).json({ error: 'Missing current or new password' });
+    }
+    if (current_password === new_password) {
+      return res.status(400).json({ error: 'New password must be different' });
+    }
+
+    const user = await User.findByPk(req.user.user_id);
+    if (!user) return res.status(404).json({ error: 'User not found' });
+
+    const matches = await compare(current_password, user.password_hash);
+    if (!matches) return res.status(400).json({ error: 'Invalid current password' });
+
+    user.password_hash = await hash(new_password);
+    await user.save();
+    res.json({ message: 'Password updated' });
   } catch (e) {
     console.error(e);
     res.status(500).json({ error: 'Internal error' });
