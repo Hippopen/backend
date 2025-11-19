@@ -437,10 +437,10 @@ router.get('/reset', (req, res) => {
   res.type('html');
   if (!token) {
     return res.status(400).send(`<!doctype html>
-<html lang="vi">
+<html lang="en">
   <head>
     <meta charset="utf-8" />
-    <title>Link reset kh&#244;ng h&#7907;p l&#7879;</title>
+    <title>Invalid reset link</title>
     <style>
       body { font-family: system-ui, sans-serif; padding: 2rem; background: #f5f5f5; }
       .card { background: #fff; padding: 1.5rem; border-radius: 8px; max-width: 480px; margin: 0 auto; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
@@ -449,8 +449,8 @@ router.get('/reset', (req, res) => {
   </head>
   <body>
     <div class="card">
-      <h1>Thiếu token</h1>
-      <p>Vui lòng dùng lại đường dẫn reset mật khẩu hợp lệ.</p>
+      <h1>Missing token</h1>
+      <p>Please open the password reset link again from your email/SMS.</p>
     </div>
   </body>
 </html>`);
@@ -458,10 +458,10 @@ router.get('/reset', (req, res) => {
 
   const safeToken = escapeHtml(token);
   res.send(`<!doctype html>
-<html lang="vi">
+<html lang="en">
   <head>
     <meta charset="utf-8" />
-    <title>Đặt lại mật khẩu</title>
+    <title>Reset password</title>
     <style>
       body { font-family: system-ui, sans-serif; padding: 2rem; background: #f5f5f5; }
       .card { background: #fff; padding: 1.5rem; border-radius: 8px; max-width: 480px; margin: 0 auto; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
@@ -475,15 +475,15 @@ router.get('/reset', (req, res) => {
   </head>
   <body>
     <div class="card">
-      <h1>Đặt lại mật khẩu</h1>
-      <p>Nhập mật khẩu mới rồi bấm cập nhật. Token đã được tự động đính kèm.</p>
+      <h1>Set a new password</h1>
+      <p>Enter a new password below and submit the form. Your reset token is already included.</p>
       <form method="post" action="/auth/reset">
         <input type="hidden" name="token" value="${safeToken}" />
-        <label for="new_password">Mật khẩu mới</label>
+        <label for="new_password">New password</label>
         <input type="password" id="new_password" name="new_password" minlength="6" required />
-        <button type="submit">Cập nhật mật khẩu</button>
+        <button type="submit">Update password</button>
       </form>
-      <footer>Nếu bạn không yêu cầu đặt lại mật khẩu, hãy bỏ qua email này.</footer>
+      <footer>If you didn't request this, you can safely ignore the email.</footer>
     </div>
   </body>
 </html>`);
