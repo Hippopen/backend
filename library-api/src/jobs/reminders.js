@@ -12,7 +12,7 @@ function formatDate(date) {
 
 function startReminders() {
   if (!mailerReady()) {
-    console.log('Reminders disabled: SMTP not configured.');
+    console.log('Reminders disabled: mailer not configured (RESEND_API_KEY missing).');
     return;
   }
 

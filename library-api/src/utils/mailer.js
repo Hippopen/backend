@@ -1,3 +1,4 @@
+// src/utils/mailer.js
 const fetch = require('node-fetch');
 
 const RESEND_API_KEY = process.env.RESEND_API_KEY;
@@ -8,38 +9,55 @@ function mailerReady() {
 }
 
 /**
- * Gửi email bằng Resend API
- * @param {string} to
- * @param {string} subject
- * @param {string} text
- * @param {string} [html]
- * @returns {Promise<boolean>}
+ * Gửi email (dùng HTTP API – ví dụ Resend)
+ * Dùng được cả cho kiểu gọi:
+ *   sendMail({ to, subject, text, html })
  */
-async function sendMail(to, subject, text, html) {
+async function sendMail({ to, subject, text, html } = {}) {
   if (!RESEND_API_KEY) {
-    console.log('[Mailer] RESEND_API_KEY not set, skip sending email to', to);
+    console.log('[Mailer] RESEND_API_KEY not set, skip email to', to);
     return false;
+  }
+
+  if (!to || !subject) {
+    console.log('[Mailer] Missing "to" or "subject", skip email');
+    return false;
+  }
+
+  // Xử lý text / html an toàn
+  const hasText = typeof text === 'string' && text.trim() !== '';
+  const hasHtml = typeof html === 'string' && html.trim() !== '';
+
+  const body = {
+    from: MAIL_FROM,
+    to,
+    subject,
+  };
+
+  if (hasText) {
+    body.text = text;
+  }
+
+  // Nếu có html thì dùng, không thì lấy từ text (nếu có)
+  if (hasHtml) {
+    body.html = html;
+  } else if (hasText) {
+    body.html = text.replace(/\n/g, '<br/>');
   }
 
   try {
     const res = await fetch('https://api.resend.com/emails', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${RESEND_API_KEY}`,
+        Authorization: `Bearer ${RESEND_API_KEY}`,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({
-        from: MAIL_FROM,
-        to,
-        subject,
-        text,
-        html: html || text.replace(/\n/g, '<br/>'),
-      }),
+      body: JSON.stringify(body),
     });
 
     if (!res.ok) {
-      const body = await res.text();
-      console.error('[Mailer] Resend API error', res.status, body);
+      const errText = await res.text();
+      console.error('[Mailer] Resend API error:', res.status, errText);
       return false;
     }
 
@@ -52,6 +70,6 @@ async function sendMail(to, subject, text, html) {
 }
 
 module.exports = {
-  mailerReady,
   sendMail,
+  mailerReady,
 };
