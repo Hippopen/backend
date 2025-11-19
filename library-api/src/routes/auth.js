@@ -145,7 +145,7 @@ router.post('/register', async (req, res) => {
     });
 
     await sendActivationLink(user, raw);
-    res.status(201).json({ message: 'Registered. Check activation link (console)', user_id: user.user_id });
+    res.status(201).json({ message: 'Registered. Check activation link', user_id: user.user_id });
   } catch (e) {
     if (e.name === 'SequelizeUniqueConstraintError') {
       return res.status(409).json({ error: 'Email/phone already registered' });

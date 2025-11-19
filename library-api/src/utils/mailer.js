@@ -1,45 +1,57 @@
-const nodemailer = require('nodemailer');
+const fetch = require('node-fetch');
 
-const {
-  SMTP_HOST,
-  SMTP_PORT,
-  SMTP_USER,
-  SMTP_PASS,
-  MAIL_FROM
-} = process.env;
+const RESEND_API_KEY = process.env.RESEND_API_KEY;
+const MAIL_FROM = process.env.MAIL_FROM || 'WebShelf <no-reply@example.com>';
 
-const transporter =
-  SMTP_HOST && SMTP_USER && SMTP_PASS
-    ? nodemailer.createTransport({
-        host: SMTP_HOST,
-        port: Number(SMTP_PORT || 587),
-        secure: Number(SMTP_PORT || 587) === 465,
-        auth: {
-          user: SMTP_USER,
-          pass: SMTP_PASS
-        }
-      })
-    : null;
+function mailerReady() {
+  return !!RESEND_API_KEY;
+}
 
-async function sendMail({ to, subject, text, html }) {
-  if (!transporter || !to) return false;
+/**
+ * Gửi email bằng Resend API
+ * @param {string} to
+ * @param {string} subject
+ * @param {string} text
+ * @param {string} [html]
+ * @returns {Promise<boolean>}
+ */
+async function sendMail(to, subject, text, html) {
+  if (!RESEND_API_KEY) {
+    console.log('[Mailer] RESEND_API_KEY not set, skip sending email to', to);
+    return false;
+  }
+
   try {
-    await transporter.sendMail({
-      from: MAIL_FROM || SMTP_USER,
-      to,
-      subject,
-      text,
-      html
+    const res = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${RESEND_API_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        from: MAIL_FROM,
+        to,
+        subject,
+        text,
+        html: html || text.replace(/\n/g, '<br/>'),
+      }),
     });
+
+    if (!res.ok) {
+      const body = await res.text();
+      console.error('[Mailer] Resend API error', res.status, body);
+      return false;
+    }
+
+    console.log('[Mailer] Email sent to', to);
     return true;
   } catch (err) {
-    console.error('[Mailer] Failed to send mail to', to, err);
+    console.error('[Mailer] Error sending email', err);
     return false;
   }
 }
 
-function mailerReady() {
-  return Boolean(transporter);
-}
-
-module.exports = { sendMail, mailerReady };
+module.exports = {
+  mailerReady,
+  sendMail,
+};
