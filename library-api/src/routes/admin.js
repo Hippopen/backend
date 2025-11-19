@@ -6,6 +6,7 @@ const { sequelize } = require('../db');
 const adminOnly = require('../middleware/admin');
 const { verifyPickupToken } = require('../utils/pickupToken');
 
+const Book        = require('../models/Book');
 const Loan        = require('../models/Loan');
 const LoanItem    = require('../models/LoanItem');
 const Inventory   = require('../models/Inventory');
@@ -73,6 +74,105 @@ router.post('/scan', async (req, res) => {
     });
   } catch (e) {
     return res.status(400).json({ error: 'invalid/expired token' });
+  }
+});
+
+/**
+ * @openapi
+ * /admin/loans:
+ *   get:
+ *     tags: [Admin]
+ *     summary: Danh sA�ch loan (c��% filter)
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: status
+ *         schema:
+ *           type: string
+ *           description: pending | borrowed | returned | cancelled | overdue | lost
+ *       - in: query
+ *         name: user_id
+ *         schema:
+ *           type: integer
+ *       - in: query
+ *         name: code
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 50
+ *       - in: query
+ *         name: offset
+ *         schema:
+ *           type: integer
+ *           default: 0
+ *     responses:
+ *       200:
+ *         description: Danh sA�ch loan
+ *       500:
+ *         description: L��-i server
+ */
+router.get('/loans', async (req, res) => {
+  try {
+    const { status, code } = req.query;
+    let { user_id, limit = 50, offset = 0 } = req.query;
+
+    const where = {};
+    if (typeof status === 'string' && status.trim() !== '') {
+      where.status = status.trim();
+    }
+    if (typeof code === 'string' && code.trim() !== '') {
+      where.code = code.trim();
+    }
+    if (user_id !== undefined) {
+      user_id = Number(user_id);
+      if (Number.isFinite(user_id)) where.user_id = user_id;
+    }
+    limit = Number(limit);
+    if (!Number.isInteger(limit) || limit <= 0) limit = 50;
+    limit = Math.min(limit, 200);
+    offset = Number(offset);
+    if (!Number.isInteger(offset) || offset < 0) offset = 0;
+
+    const result = await Loan.findAndCountAll({
+      where,
+      limit,
+      offset,
+      order: [['loan_id', 'DESC']],
+      include: [
+        {
+          model: User,
+          as: 'user',
+          attributes: ['user_id', 'email', 'phone', 'first_name', 'last_name']
+        },
+        {
+          model: LoanItem,
+          as: 'items',
+          attributes: ['loan_item_id', 'book_id', 'quantity'],
+          include: [
+            {
+              model: Book,
+              as: 'book',
+              attributes: ['book_id', 'title', 'author']
+            }
+          ]
+        }
+      ],
+      distinct: true
+    });
+
+    res.json({
+      count: result.count,
+      rows: result.rows,
+      limit,
+      offset
+    });
+  } catch (e) {
+    console.error('List loans error:', e);
+    res.status(500).json({ error: 'Failed to load loans' });
   }
 });
 

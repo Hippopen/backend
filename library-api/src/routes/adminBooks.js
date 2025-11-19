@@ -1,5 +1,6 @@
 // routes/adminBooks.js
 const express = require('express');
+const { Op } = require('sequelize');
 const { sequelize } = require('../db');
 
 const Book       = require('../models/Book');
@@ -16,6 +17,71 @@ router.use((req, res, next) => {
     return res.status(403).json({ error: 'Admin only' });
   }
   next();
+});
+
+/**
+ * @openapi
+ * /admin/books:
+ *   get:
+ *     tags: [Admin]
+ *     summary: Danh sA�ch sA�ch
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: search
+ *         schema:
+ *           type: string
+ *           description: T��` khA�o search theo title/author
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 50
+ *       - in: query
+ *         name: offset
+ *         schema:
+ *           type: integer
+ *           default: 0
+ *     responses:
+ *       200:
+ *         description: Danh sA�ch sA�ch
+ */
+router.get('/', async (req, res) => {
+  try {
+    let { search, limit = 50, offset = 0 } = req.query;
+
+    limit = Number(limit);
+    if (!Number.isInteger(limit) || limit <= 0) limit = 50;
+    limit = Math.min(limit, 200);
+    offset = Number(offset);
+    if (!Number.isInteger(offset) || offset < 0) offset = 0;
+
+    const where = {};
+    if (typeof search === 'string' && search.trim() !== '') {
+      const pattern = `%${search.trim()}%`;
+      where[Op.or] = [
+        { title: { [Op.like]: pattern } },
+        { author: { [Op.like]: pattern } }
+      ];
+    }
+
+    const result = await Book.findAndCountAll({
+      where,
+      limit,
+      offset,
+      order: [['book_id', 'DESC']],
+      include: [
+        { model: Inventory, as: 'inventory', attributes: ['total', 'available'] },
+        { model: Genre, as: 'genres', through: { attributes: [] } }
+      ],
+      distinct: true
+    });
+    res.json({ count: result.count, rows: result.rows, limit, offset });
+  } catch (e) {
+    console.error('List admin books error:', e);
+    res.status(500).json({ error: 'Failed to load books' });
+  }
 });
 
 /**

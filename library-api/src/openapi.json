@@ -1,4 +1,4 @@
-{
+﻿{
   "openapi": "3.0.0",
   "info": {
     "title": "Library API",
@@ -186,7 +186,7 @@
     },
     "/auth/register": {
       "post": {
-        "summary": "Đăng ký tài khoản",
+        "summary": "ÄÄƒng kÃ½ tÃ i khoáº£n",
         "tags": [
           "Auth"
         ],
@@ -209,7 +209,7 @@
     },
     "/auth/activate": {
       "get": {
-        "summary": "Kích hoạt tài khoản",
+        "summary": "KÃ­ch hoáº¡t tÃ i khoáº£n",
         "tags": [
           "Auth"
         ],
@@ -232,7 +232,7 @@
     },
     "/auth/login": {
       "post": {
-        "summary": "Đăng nhập",
+        "summary": "ÄÄƒng nháº­p",
         "tags": [
           "Auth"
         ],
@@ -251,7 +251,7 @@
             "description": "OK"
           },
           "401": {
-            "description": "Sai tài khoản / mật khẩu"
+            "description": "Sai tÃ i khoáº£n / máº­t kháº©u"
           }
         }
       }
@@ -348,7 +348,7 @@
     },
     "/books": {
       "get": {
-        "summary": "Danh sách sách",
+        "summary": "Danh sÃ¡ch sÃ¡ch",
         "tags": [
           "Books"
         ],
@@ -391,14 +391,14 @@
         ],
         "responses": {
           "200": {
-            "description": "Danh sách sách"
+            "description": "Danh sÃ¡ch sÃ¡ch"
           }
         }
       }
     },
     "/cart": {
       "get": {
-        "summary": "Lấy giỏ sách hiện tại",
+        "summary": "Láº¥y giá» sÃ¡ch hiá»‡n táº¡i",
         "tags": [
           "Cart"
         ],
@@ -414,7 +414,7 @@
         }
       },
       "post": {
-        "summary": "Thêm sách vào giỏ",
+        "summary": "ThÃªm sÃ¡ch vÃ o giá»",
         "tags": [
           "Cart"
         ],
@@ -452,7 +452,7 @@
         }
       },
       "put": {
-        "summary": "Cập nhật số lượng sách trong giỏ",
+        "summary": "Cáº­p nháº­t sá»‘ lÆ°á»£ng sÃ¡ch trong giá»",
         "tags": [
           "Cart"
         ],
@@ -492,7 +492,7 @@
     },
     "/cart/{book_id}": {
       "delete": {
-        "summary": "Xoá sách khỏi giỏ",
+        "summary": "XoÃ¡ sÃ¡ch khá»i giá»",
         "tags": [
           "Cart"
         ],
@@ -520,7 +520,7 @@
     },
     "/checkout": {
       "post": {
-        "summary": "Tạo phiếu mượn từ giỏ",
+        "summary": "Táº¡o phiáº¿u mÆ°á»£n tá»« giá»",
         "tags": [
           "Checkout"
         ],
@@ -538,7 +538,7 @@
     },
     "/loans": {
       "get": {
-        "summary": "Danh sách phiếu mượn của user",
+        "summary": "Danh sÃ¡ch phiáº¿u mÆ°á»£n cá»§a user",
         "tags": [
           "Loans"
         ],
@@ -581,7 +581,7 @@
     },
     "/loans/{loan_id}": {
       "get": {
-        "summary": "Chi tiết phiếu mượn",
+        "summary": "Chi tiáº¿t phiáº¿u mÆ°á»£n",
         "tags": [
           "Loans"
         ],
@@ -609,7 +609,7 @@
     },
     "/loans/{loan_id}/qr.png": {
       "get": {
-        "summary": "Lấy QR code cho phiếu mượn",
+        "summary": "Láº¥y QR code cho phiáº¿u mÆ°á»£n",
         "tags": [
           "Loans"
         ],
@@ -630,14 +630,14 @@
         ],
         "responses": {
           "200": {
-            "description": "Hình ảnh QR (image/png)"
+            "description": "HÃ¬nh áº£nh QR (image/png)"
           }
         }
       }
     },
     "/loans/{loan_id}/renew": {
       "post": {
-        "summary": "Gia hạn phiếu mượn (user)",
+        "summary": "Gia háº¡n phiáº¿u mÆ°á»£n (user)",
         "tags": [
           "Loans"
         ],
@@ -665,7 +665,7 @@
     },
     "/reviews/book/{book_id}": {
       "get": {
-        "summary": "Danh sách review cho 1 sách",
+        "summary": "Danh sÃ¡ch review cho 1 sÃ¡ch",
         "tags": [
           "Reviews"
         ],
@@ -693,7 +693,7 @@
     },
     "/reviews": {
       "post": {
-        "summary": "Tạo review",
+        "summary": "Táº¡o review",
         "tags": [
           "Reviews"
         ],
@@ -738,7 +738,7 @@
     },
     "/reviews/{review_id}": {
       "put": {
-        "summary": "Sửa review",
+        "summary": "Sá»­a review",
         "tags": [
           "Reviews"
         ],
@@ -784,7 +784,7 @@
         }
       },
       "delete": {
-        "summary": "Xoá review",
+        "summary": "XoÃ¡ review",
         "tags": [
           "Reviews"
         ],
@@ -812,7 +812,7 @@
     },
     "/invoices": {
       "get": {
-        "summary": "Danh sách invoice của user",
+        "summary": "Danh sÃ¡ch invoice cá»§a user",
         "tags": [
           "Invoices"
         ],
@@ -855,7 +855,7 @@
     },
     "/invoices/{invoice_id}": {
       "get": {
-        "summary": "Chi tiết invoice",
+        "summary": "Chi tiáº¿t invoice",
         "tags": [
           "Invoices"
         ],
@@ -883,7 +883,7 @@
     },
     "/transactions": {
       "get": {
-        "summary": "Lịch sử giao dịch của user",
+        "summary": "Lá»‹ch sá»­ giao dá»‹ch cá»§a user",
         "tags": [
           "Transactions"
         ],
@@ -924,9 +924,70 @@
         }
       }
     },
+    "/admin/loans": {
+      "get": {
+        "summary": "Danh sach loan",
+        "tags": [
+          "Admin"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "status",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            },
+            "description": "Filter theo trang thai"
+          },
+          {
+            "name": "user_id",
+            "in": "query",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "code",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "default": 50
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "default": 0
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "500": {
+            "description": "Server error"
+          }
+        }
+      }
+    },
     "/admin/scan": {
       "post": {
-        "summary": "Admin quét QR phiếu mượn",
+        "summary": "Admin quÃ©t QR phiáº¿u mÆ°á»£n",
         "tags": [
           "Admin"
         ],
@@ -960,9 +1021,56 @@
         }
       }
     },
+    "/admin/books": {
+      "get": {
+        "summary": "Danh sach sach",
+        "tags": [
+          "Admin"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "search",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            },
+            "description": "Search theo title/author"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "default": 50
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "default": 0
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "500": {
+            "description": "Server error"
+          }
+        }
+      }
+    },
     "/admin/loans/{loan_id}/confirm": {
       "post": {
-        "summary": "Admin xác nhận cho mượn (checkout loan)",
+        "summary": "Admin xÃ¡c nháº­n cho mÆ°á»£n (checkout loan)",
         "tags": [
           "Admin"
         ],
@@ -990,7 +1098,7 @@
     },
     "/admin/loans/{loan_id}/renew": {
       "post": {
-        "summary": "Admin gia hạn loan",
+        "summary": "Admin gia háº¡n loan",
         "tags": [
           "Admin"
         ],
@@ -1018,7 +1126,7 @@
     },
     "/admin/loans/{loan_id}/return": {
       "post": {
-        "summary": "Admin nhận trả sách",
+        "summary": "Admin nháº­n tráº£ sÃ¡ch",
         "tags": [
           "Admin"
         ],
@@ -1046,7 +1154,7 @@
     },
     "/admin/loans/{loan_id}/cancel": {
       "post": {
-        "summary": "Admin huỷ loan",
+        "summary": "Admin huá»· loan",
         "tags": [
           "Admin"
         ],
@@ -1074,7 +1182,7 @@
     },
     "/admin/invoices": {
       "get": {
-        "summary": "Admin xem danh sách invoice",
+        "summary": "Admin xem danh sÃ¡ch invoice",
         "tags": [
           "Admin"
         ],
@@ -1115,7 +1223,7 @@
     },
     "/admin/invoices/{invoice_id}/mark-paid": {
       "post": {
-        "summary": "Admin đánh dấu invoice đã thanh toán",
+        "summary": "Admin Ä‘Ã¡nh dáº¥u invoice Ä‘Ã£ thanh toÃ¡n",
         "tags": [
           "Admin"
         ],
@@ -1143,7 +1251,7 @@
     },
     "/admin/invoices/{invoice_id}/void": {
       "post": {
-        "summary": "Admin huỷ invoice (void)",
+        "summary": "Admin huá»· invoice (void)",
         "tags": [
           "Admin"
         ],
@@ -1171,7 +1279,7 @@
     },
     "/admin/transactions": {
       "get": {
-        "summary": "Admin xem danh sách giao dịch",
+        "summary": "Admin xem danh sÃ¡ch giao dá»‹ch",
         "tags": [
           "Admin"
         ],
@@ -1219,7 +1327,7 @@
     },
     "/admin/reviews": {
       "get": {
-        "summary": "Admin lọc review",
+        "summary": "Admin lá»c review",
         "tags": [
           "Admin"
         ],
@@ -1260,7 +1368,7 @@
     },
     "/admin/reviews/{review_id}/hide": {
       "put": {
-        "summary": "Admin ẩn review",
+        "summary": "Admin áº©n review",
         "tags": [
           "Admin"
         ],
@@ -1288,7 +1396,7 @@
     },
     "/admin/reviews/{review_id}/show": {
       "put": {
-        "summary": "Admin hiện/duyệt review",
+        "summary": "Admin hiá»‡n/duyá»‡t review",
         "tags": [
           "Admin"
         ],
@@ -1316,7 +1424,7 @@
     },
     "/admin/jobs/run-overdue": {
       "post": {
-        "summary": "Admin chạy job overdue thủ công",
+        "summary": "Admin cháº¡y job overdue thá»§ cÃ´ng",
         "tags": [
           "Admin"
         ],
@@ -1334,3 +1442,5 @@
     }
   }
 }
+
+
