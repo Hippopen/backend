@@ -18,6 +18,14 @@ const normalizeEmail = (v) =>
 const normalizePhone = (v) =>
   (typeof v === 'string' && v.trim() !== '' ? v.trim() : undefined);
 
+const escapeHtml = (str = '') =>
+  String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+
 async function sendActivationLink(user, token) {
   const url = `${process.env.APP_BASE_URL || 'http://localhost:3000'}/auth/activate?token=${token}`;
   if (user?.email) {
@@ -401,6 +409,84 @@ router.put('/password', authGuard, async (req, res) => {
     console.error(e);
     res.status(500).json({ error: 'Internal error' });
   }
+});
+
+/**
+ * @openapi
+ * /auth/reset:
+ *   get:
+ *     tags: [Auth]
+ *     summary: Render trang HTML nhập mật khẩu mới
+ *     parameters:
+ *       - in: query
+ *         name: token
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Trang HTML form reset password
+ *         content:
+ *           text/html:
+ *             schema:
+ *               type: string
+ *       400:
+ *         description: Thiếu token
+ */
+router.get('/reset', (req, res) => {
+  const token = typeof req.query.token === 'string' ? req.query.token : '';
+  res.type('html');
+  if (!token) {
+    return res.status(400).send(`<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="utf-8" />
+    <title>Link reset kh&#244;ng h&#7907;p l&#7879;</title>
+    <style>
+      body { font-family: system-ui, sans-serif; padding: 2rem; background: #f5f5f5; }
+      .card { background: #fff; padding: 1.5rem; border-radius: 8px; max-width: 480px; margin: 0 auto; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+      h1 { font-size: 1.25rem; margin-bottom: 0.5rem; }
+    </style>
+  </head>
+  <body>
+    <div class="card">
+      <h1>Thiếu token</h1>
+      <p>Vui lòng dùng lại đường dẫn reset mật khẩu hợp lệ.</p>
+    </div>
+  </body>
+</html>`);
+  }
+
+  const safeToken = escapeHtml(token);
+  res.send(`<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="utf-8" />
+    <title>Đặt lại mật khẩu</title>
+    <style>
+      body { font-family: system-ui, sans-serif; padding: 2rem; background: #f5f5f5; }
+      .card { background: #fff; padding: 1.5rem; border-radius: 8px; max-width: 480px; margin: 0 auto; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+      label { display: block; margin-bottom: 0.5rem; font-weight: 600; }
+      input[type="password"] { width: 100%; padding: 0.6rem; margin-bottom: 1rem; border: 1px solid #ccc; border-radius: 6px; font-size: 1rem; }
+      button { background: #0066ff; color: #fff; border: none; padding: 0.7rem 1.25rem; border-radius: 6px; cursor: pointer; font-size: 1rem; }
+      button:hover { background: #0052cc; }
+      p { color: #444; }
+      footer { margin-top: 1rem; font-size: 0.9rem; color: #666; }
+    </style>
+  </head>
+  <body>
+    <div class="card">
+      <h1>Đặt lại mật khẩu</h1>
+      <p>Nhập mật khẩu mới rồi bấm cập nhật. Token đã được tự động đính kèm.</p>
+      <form method="post" action="/auth/reset">
+        <input type="hidden" name="token" value="${safeToken}" />
+        <label for="new_password">Mật khẩu mới</label>
+        <input type="password" id="new_password" name="new_password" minlength="6" required />
+        <button type="submit">Cập nhật mật khẩu</button>
+      </form>
+      <footer>Nếu bạn không yêu cầu đặt lại mật khẩu, hãy bỏ qua email này.</footer>
+    </div>
+  </body>
+</html>`);
 });
 
 /**
