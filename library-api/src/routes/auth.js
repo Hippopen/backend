@@ -5,6 +5,8 @@ const { Op } = require('sequelize');
 const { signAccess } = require('../utils/jwt');
 const { hash, compare } = require('../utils/password');
 const { generateToken, hashToken } = require('../utils/tokens');
+const { sendMail } = require('../utils/mailer');
+const { sendSms } = require('../utils/sms');
 
 const User = require('../models/User');
 const UserToken = require('../models/UserToken');
@@ -15,13 +17,49 @@ const normalizeEmail = (v) =>
 const normalizePhone = (v) =>
   (typeof v === 'string' && v.trim() !== '' ? v.trim() : undefined);
 
-async function sendActivationLink(emailOrPhone, token) {
+async function sendActivationLink(user, token) {
   const url = `${process.env.APP_BASE_URL || 'http://localhost:3000'}/auth/activate?token=${token}`;
-  console.log('[Activation]', emailOrPhone, url);
+  if (user?.email) {
+    const sent = await sendMail({
+      to: user.email,
+      subject: 'Kích hoạt tài khoản thư viện',
+      text:
+        `Xin chào ${user.first_name || ''} ${user.last_name || ''}\n\n` +
+        `Nhấn vào liên kết sau để kích hoạt tài khoản của bạn: ${url}\n\n` +
+        `Nếu bạn không yêu cầu, hãy bỏ qua email này.`
+    });
+    if (sent) return;
+  }
+  if (user?.phone) {
+    const sentSms = await sendSms(
+      user.phone,
+      `Thu vien: kich hoat tai khoan tai ${url}`
+    );
+    if (sentSms) return;
+  }
+  console.log('[Activation]', user?.email || user?.phone || 'unknown', url);
 }
-async function sendResetLink(emailOrPhone, token) {
+async function sendResetLink(user, token) {
   const url = `${process.env.APP_BASE_URL || 'http://localhost:3000'}/auth/reset?token=${token}`;
-  console.log('[Reset]', emailOrPhone, url);
+  if (user?.email) {
+    const sent = await sendMail({
+      to: user.email,
+      subject: 'Đặt lại mật khẩu thư viện',
+      text:
+        `Xin chào ${user.first_name || ''} ${user.last_name || ''}\n\n` +
+        `Nhấn vào liên kết sau để đặt lại mật khẩu: ${url}\n\n` +
+        `Nếu bạn không yêu cầu, hãy bỏ qua email này.`
+    });
+    if (sent) return;
+  }
+  if (user?.phone) {
+    const sentSms = await sendSms(
+      user.phone,
+      `Thu vien: dat lai mat khau tai ${url}`
+    );
+    if (sentSms) return;
+  }
+  console.log('[Reset]', user?.email || user?.phone || 'unknown', url);
 }
 
 /* ---------- routes ---------- */
@@ -106,7 +144,7 @@ router.post('/register', async (req, res) => {
       expires_at: expires
     });
 
-    await sendActivationLink(email || phone, raw);
+    await sendActivationLink(user, raw);
     res.status(201).json({ message: 'Registered. Check activation link (console)', user_id: user.user_id });
   } catch (e) {
     if (e.name === 'SequelizeUniqueConstraintError') {
@@ -305,7 +343,7 @@ router.post('/request-reset', async (req, res) => {
       expires_at: expires
     });
 
-    await sendResetLink(email || phone, raw);
+    await sendResetLink(user, raw);
     res.json({ message: 'If account exists, we sent a reset link (console)' });
   } catch (e) {
     console.error(e);

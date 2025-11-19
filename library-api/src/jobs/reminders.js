@@ -1,49 +1,17 @@
 const cron = require('node-cron');
-const nodemailer = require('nodemailer');
 const { Op } = require('sequelize');
 
 const Loan = require('../models/Loan');
 const User = require('../models/User');
+const { mailerReady, sendMail } = require('../utils/mailer');
+const { sendSms } = require('../utils/sms');
 
-const {
-  SMTP_HOST,
-  SMTP_PORT,
-  SMTP_USER,
-  SMTP_PASS,
-  MAIL_FROM,
-} = process.env;
-
-// Tạo transporter gửi mail
-const transporter = SMTP_HOST
-  ? nodemailer.createTransport({
-      host: SMTP_HOST,
-      port: Number(SMTP_PORT || 587),
-      secure: false,
-      auth: {
-        user: SMTP_USER,
-        pass: SMTP_PASS,
-      },
-    })
-  : null;
-
-async function sendMail(to, subject, text) {
-  if (!to || !transporter) return;
-
-  try {
-    await transporter.sendMail({
-      from: MAIL_FROM || SMTP_USER,
-      to,
-      subject,
-      text,
-    });
-    console.log('Reminder mail sent to', to, '-', subject);
-  } catch (err) {
-    console.error('Error sending reminder mail to', to, err);
-  }
+function formatDate(date) {
+  return date.toISOString().slice(0, 10);
 }
 
 function startReminders() {
-  if (!transporter) {
+  if (!mailerReady()) {
     console.log('Reminders disabled: SMTP not configured.');
     return;
   }
@@ -61,53 +29,79 @@ function startReminders() {
       const soonLoans = await Loan.findAll({
         where: {
           status: 'borrowed',
-          due_date: {
-            [Op.between]: [today, in3Days],
-          },
+          due_date: { [Op.between]: [today, in3Days] }
         },
-        include: [{ model: User, as: 'user' }],
+        include: [{ model: User, as: 'user' }]
       });
 
       for (const loan of soonLoans) {
         const user = loan.user;
-        if (!user || !user.email) continue;
+        if (!user) continue;
 
         const text =
           `Xin chào ${user.first_name || ''} ${user.last_name || ''}\n\n` +
-          `Phiếu mượn #${loan.loan_id} của bạn sẽ đến hạn trả sách vào ngày ${loan.due_date.toISOString().slice(0, 10)}.\n` +
+          `Phiếu mượn #${loan.loan_id} của bạn sắp đến hạn trả vào ngày ${formatDate(loan.due_date)}.\n` +
           `Vui lòng sắp xếp thời gian đến thư viện để trả hoặc gia hạn (nếu được phép).\n\n` +
           `Trân trọng,\nThư viện`;
+        const smsText = `Thu vien: Phieu #${loan.loan_id} sap den han ${formatDate(
+          loan.due_date
+        )}. Vui long den tra/gia han.`;
 
-        await sendMail(user.email, 'Nhắc trả sách sắp đến hạn', text);
+        let delivered = false;
+        if (user.email) {
+          delivered = await sendMail({
+            to: user.email,
+            subject: 'Nhắc trả sách sắp đến hạn',
+            text
+          });
+        }
+        if (!delivered && user.phone) {
+          delivered = await sendSms(user.phone, smsText);
+        }
+        if (!delivered) {
+          console.log('[Reminders] Could not notify user', user.user_id);
+        }
       }
 
       const overdueLoans = await Loan.findAll({
         where: {
-          status: {
-            [Op.in]: ['borrowed', 'overdue'],
-          },
-          due_date: {
-            [Op.lt]: today,
-          },
+          status: { [Op.in]: ['borrowed', 'overdue'] },
+          due_date: { [Op.lt]: today }
         },
-        include: [{ model: User, as: 'user' }],
+        include: [{ model: User, as: 'user' }]
       });
 
       for (const loan of overdueLoans) {
         const user = loan.user;
-        if (!user || !user.email) continue;
+        if (!user) continue;
 
         const text =
           `Xin chào ${user.first_name || ''} ${user.last_name || ''}\n\n` +
-          `Phiếu mượn #${loan.loan_id} của bạn đã quá hạn trả sách (ngày hẹn trả: ${loan.due_date.toISOString().slice(0, 10)}).\n` +
-          `Vui lòng đến thư viện sớm nhất có thể để trả sách. Phí phạt (nếu có) sẽ được tính theo quy định.\n\n` +
+          `Phiếu mượn #${loan.loan_id} của bạn đã quá hạn trả (ngày hẹn: ${formatDate(loan.due_date)}).\n` +
+          `Vui lòng đến thư viện sớm nhất để trả sách. Phí phạt (nếu có) được tính theo quy định.\n\n` +
           `Trân trọng,\nThư viện`;
+        const smsText = `Thu vien: Phieu #${loan.loan_id} da qua han (hen ${formatDate(
+          loan.due_date
+        )}). Vui long den tra sach.`;
 
-        await sendMail(user.email, 'Bạn đang quá hạn trả sách', text);
+        let delivered = false;
+        if (user.email) {
+          delivered = await sendMail({
+            to: user.email,
+            subject: 'Bạn đang quá hạn trả sách',
+            text
+          });
+        }
+        if (!delivered && user.phone) {
+          delivered = await sendSms(user.phone, smsText);
+        }
+        if (!delivered) {
+          console.log('[Reminders] Could not notify user', user.user_id);
+        }
       }
 
       console.log(
-        `[Reminders] Done: soon=${soonLoans.length}, overdue=${overdueLoans.length}`,
+        `[Reminders] Done: soon=${soonLoans.length}, overdue=${overdueLoans.length}`
       );
     } catch (err) {
       console.error('[Reminders] Job error:', err);
