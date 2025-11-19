@@ -83,7 +83,7 @@ router.post('/scan', async (req, res) => {
  * /admin/loans:
  *   get:
  *     tags: [Admin]
- *     summary: Danh sA�ch loan (c��% filter)
+ *     summary: Danh sách loan
  *     security:
  *       - bearerAuth: []
  *     parameters:
