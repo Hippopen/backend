@@ -63,7 +63,7 @@ async function sendResetLink(user, token) {
  * /auth/register:
  *   post:
  *     tags: [Auth]
- *     summary: ÄÄƒng kÃ½ tÃ i khoáº£n má»›i
+ *     summary: Đăng kí tài khoản mới
  *     requestBody:
  *       required: true
  *       content:
@@ -85,13 +85,13 @@ async function sendResetLink(user, token) {
  *                 type: string
  *     responses:
  *       201:
- *         description: ÄÄƒng kÃ½ thÃ nh cÃ´ng, tráº£ vá» user_id
+ *         description: Đăng kí thành công, trả về user_id
  *       400:
- *         description: Thiáº¿u email hoáº·c password
+ *         description: Thiếu email hoặc password
  *       409:
- *         description: email Ä‘Ã£ tá»“n táº¡i
+ *         description: Email tồn tại
  *       500:
- *         description: Lá»—i server
+ *         description: Lỗi server
  */
 router.post('/register', async (req, res) => {
   try {
@@ -116,7 +116,6 @@ router.post('/register', async (req, res) => {
       role: 'user'
     });
 
-    // Táº¡o token kÃ­ch hoáº¡t
     const raw = generateToken();
     const token_hash = hashToken(raw);
     const expires = new Date(Date.now() + 48 * 3600 * 1000);
@@ -144,21 +143,21 @@ router.post('/register', async (req, res) => {
  * /auth/activate:
  *   get:
  *     tags: [Auth]
- *     summary: KÃ­ch hoáº¡t tÃ i khoáº£n báº±ng token
+ *     summary: Kích hoạt tài khoản bằng token
  *     parameters:
  *       - in: query
  *         name: token
  *         schema:
  *           type: string
  *         required: true
- *         description: Token kÃ­ch hoáº¡t Ä‘Ã£ gá»­i qua console/email/sms
+ *         description: Token kích hoạt sẽ qua console/email/sms
  *     responses:
  *       200:
- *         description: KÃ­ch hoáº¡t thÃ nh cÃ´ng
+ *         description: Kích hoạt thành công
  *       400:
- *         description: Token khÃ´ng há»£p lá»‡ hoáº·c háº¿t háº¡n
+ *         description: Token không đúng hoặc đã hết hạn
  *       500:
- *         description: Lá»—i server
+ *         description: Lỗi server
  */
 
 router.get('/activate', async (req, res) => {
@@ -193,7 +192,7 @@ router.get('/activate', async (req, res) => {
  * /auth/login:
  *   post:
  *     tags: [Auth]
- *     summary: ÄÄƒng nháº­p, tráº£ vá» JWT access_token
+ *     summary: Đăng nhập, trả về JWT token
  *     requestBody:
  *       required: true
  *       content:
@@ -203,7 +202,8 @@ router.get('/activate', async (req, res) => {
  *             properties:
  *               email:
  *                 type: string
- *                 format: email
+ *                 format: email
+
  *               password:
  *                 type: string
  *                 format: password
@@ -211,7 +211,7 @@ router.get('/activate', async (req, res) => {
  *               Nhap email va password.
  *     responses:
  *       200:
- *         description: ÄÄƒng nháº­p thÃ nh cÃ´ng
+ *         description: Đăng nhập thành công
  *         content:
  *           application/json:
  *             schema:
@@ -230,13 +230,13 @@ router.get('/activate', async (req, res) => {
  *                     role:
  *                       type: string
  *       400:
- *         description: Thiáº¿u thÃ´ng tin Ä‘Äƒng nháº­p
+ *         description: Thiếu thông tin đăng nhập
  *       401:
- *         description: Sai tÃ i khoáº£n hoáº·c máº­t kháº©u
+ *         description: Sai tài khoản hoặc mật khẩu
  *       403:
- *         description: TÃ i khoáº£n chÆ°a kÃ­ch hoáº¡t
+ *         description: Tài khoản chưa kích hoạt
  *       500:
- *         description: Lá»—i server
+ *         description: Lỗi server
  */
 
 router.post('/login', async (req, res) => {
@@ -274,7 +274,7 @@ router.post('/login', async (req, res) => {
  * /auth/profile:
  *   put:
  *     tags: [Auth]
- *     summary: Cáº­p nháº­t há» tÃªn user
+ *     summary: Cập nhật tài khoản
  *     security:
  *       - bearerAuth: []
  *     requestBody:
@@ -293,15 +293,15 @@ router.post('/login', async (req, res) => {
  *                 description: So dien thoai (tuy chon)
  *     responses:
  *       200:
- *         description: Cáº­p nháº­t thÃ nh cÃ´ng
+ *         description: Cập nhật thành công
  *       400:
- *         description: Thiáº¿u thÃ´ng tin cáº§n cáº­p nháº­t
+ *         description: Thiếu thông tin cần cập nhật
  *       401:
- *         description: ChÆ°a Ä‘Äƒng nháº­p
+ *         description: Chưa đăng nhập
  *       404:
- *         description: User khÃ´ng tá»“n táº¡i
+ *         description: User không tìm thấy
  *       500:
- *         description: Lá»—i server
+ *         description: Lỗi server
  */
 router.put('/profile', authGuard, async (req, res) => {
   try {
@@ -342,7 +342,7 @@ router.put('/profile', authGuard, async (req, res) => {
  * /auth/password:
  *   put:
  *     tags: [Auth]
- *     summary: Äá»•i máº­t kháº©u báº±ng current password
+ *     summary: Đổi mật khẩu bằng current password
  *     security:
  *       - bearerAuth: []
  *     requestBody:
@@ -361,15 +361,15 @@ router.put('/profile', authGuard, async (req, res) => {
  *                 format: password
  *     responses:
  *       200:
- *         description: Äá»•i máº­t kháº©u thÃ nh cÃ´ng
+ *         description: Đổi mật khẩu thành công
  *       400:
- *         description: Thiáº¿u thÃ´ng tin hoáº·c current password khÃ´ng Ä‘Ãºng
+ *         description: Thiếu thông tin hoặc current password không đúng
  *       401:
- *         description: ChÆ°a Ä‘Äƒng nháº­p
+ *         description: Chưa đăng nhập
  *       404:
- *         description: User khÃ´ng tá»“n táº¡i
+ *         description: User không tìm thấy
  *       500:
- *         description: Lá»—i server
+ *         description: Lỗi server
  */
 router.put('/password', authGuard, async (req, res) => {
   try {
@@ -401,7 +401,7 @@ router.put('/password', authGuard, async (req, res) => {
  * /auth/reset:
  *   get:
  *     tags: [Auth]
- *     summary: Render trang HTML nháº­p máº­t kháº©u má»›i
+ *     summary: Render trang HTML nhập mật khẩu mới
  *     parameters:
  *       - in: query
  *         name: token
@@ -415,7 +415,7 @@ router.put('/password', authGuard, async (req, res) => {
  *             schema:
  *               type: string
  *       400:
- *         description: Thiáº¿u token
+ *         description: Thiếu token
  */
 router.get('/reset', (req, res) => {
   const token = typeof req.query.token === 'string' ? req.query.token : '';
@@ -479,10 +479,9 @@ router.get('/reset', (req, res) => {
  * /auth/request-reset:
  *   post:
  *     tags: [Auth]
- *     summary: YÃªu cáº§u reset máº­t kháº©u
+ *     summary: Yêu cầu reset mật khẩu
  *     description: >
- *       Náº¿u account tá»“n táº¡i, server sáº½ táº¡o reset token (in ra console) vÃ  tráº£ vá» message chung,
- *       khÃ´ng tiáº¿t lá»™ user cÃ³ tá»“n táº¡i hay khÃ´ng.
+ *       Nếu account tồn tại, server sẽ tạo reset token (in ra console) và  trà về message chung
  *     requestBody:
  *       required: true
  *       content:
@@ -491,14 +490,15 @@ router.get('/reset', (req, res) => {
  *             type: object
  *             properties:
  *               email:
- *                 type: string
+ *                 type: string
+
  *     responses:
  *       200:
- *         description: LuÃ´n tráº£ message "If account exists..."
+ *         description: Trả về message "If account exists..."
  *       400:
- *         description: Thiáº¿u email
+ *         description: Thiếu email
  *       500:
- *         description: Lá»—i server
+ *         description: Lỗi server
  */
 
 router.post('/request-reset', async (req, res) => {
@@ -510,7 +510,6 @@ router.post('/request-reset', async (req, res) => {
     if (!email) return res.status(400).json({ error: 'Missing email' });
 
     const user = await User.findOne({ where: { email } });
-    // KhÃ´ng tiáº¿t lá»™ user tá»“n táº¡i hay khÃ´ng
     if (!user) return res.json({ message: 'If account exists, we sent a reset link' });
 
     const raw = generateToken();
@@ -537,7 +536,7 @@ router.post('/request-reset', async (req, res) => {
  * /auth/reset:
  *   post:
  *     tags: [Auth]
- *     summary: Äáº·t láº¡i máº­t kháº©u báº±ng reset token
+ *     summary: Đặt lại mật khẩu bằng reset token
  *     requestBody:
  *       required: true
  *       content:
@@ -548,21 +547,17 @@ router.post('/request-reset', async (req, res) => {
  *             properties:
  *               token:
  *                 type: string
- *               password:
- *                 type: string
- *                 format: password
- *                 description: Máº­t kháº©u má»›i (Æ°u tiÃªn sá»­ dá»¥ng trÆ°á»ng nÃ y)
  *               new_password:
  *                 type: string
  *                 format: password
- *                 description: Alias cÅ© cho password, giá»¯ láº¡i Ä‘á»ƒ tÆ°Æ¡ng thÃ­ch
+ *                 description: Mật khẩu mới
  *     responses:
  *       200:
- *         description: Reset máº­t kháº©u thÃ nh cÃ´ng
+ *         description: Reset mật khẩu thành công
  *       400:
- *         description: Token khÃ´ng há»£p lá»‡/háº¿t háº¡n
+ *         description: Token đã hết hạn
  *       500:
- *         description: Lá»—i server
+ *         description: Lỗi server
  */
 
 router.post('/reset', async (req, res) => {
