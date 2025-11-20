@@ -4,7 +4,6 @@ const { Op } = require('sequelize');
 const Loan = require('../models/Loan');
 const User = require('../models/User');
 const { mailerReady, sendMail } = require('../utils/mailer');
-const { sendSms } = require('../utils/sms');
 
 function formatDate(date) {
   return date.toISOString().slice(0, 10);
@@ -43,9 +42,6 @@ function startReminders() {
           `Phiếu mượn #${loan.loan_id} của bạn sắp đến hạn trả vào ngày ${formatDate(loan.due_date)}.\n` +
           `Vui lòng sắp xếp thời gian đến thư viện để trả hoặc gia hạn (nếu được phép).\n\n` +
           `Trân trọng,\nThư viện`;
-        const smsText = `Thu vien: Phieu #${loan.loan_id} sap den han ${formatDate(
-          loan.due_date
-        )}. Vui long den tra/gia han.`;
 
         let delivered = false;
         if (user.email) {
@@ -54,9 +50,6 @@ function startReminders() {
             subject: 'Nhắc trả sách sắp đến hạn',
             text
           });
-        }
-        if (!delivered && user.phone) {
-          delivered = await sendSms(user.phone, smsText);
         }
         if (!delivered) {
           console.log('[Reminders] Could not notify user', user.user_id);
@@ -80,9 +73,6 @@ function startReminders() {
           `Phiếu mượn #${loan.loan_id} của bạn đã quá hạn trả (ngày hẹn: ${formatDate(loan.due_date)}).\n` +
           `Vui lòng đến thư viện sớm nhất để trả sách. Phí phạt (nếu có) được tính theo quy định.\n\n` +
           `Trân trọng,\nThư viện`;
-        const smsText = `Thu vien: Phieu #${loan.loan_id} da qua han (hen ${formatDate(
-          loan.due_date
-        )}). Vui long den tra sach.`;
 
         let delivered = false;
         if (user.email) {
@@ -91,9 +81,6 @@ function startReminders() {
             subject: 'Bạn đang quá hạn trả sách',
             text
           });
-        }
-        if (!delivered && user.phone) {
-          delivered = await sendSms(user.phone, smsText);
         }
         if (!delivered) {
           console.log('[Reminders] Could not notify user', user.user_id);
