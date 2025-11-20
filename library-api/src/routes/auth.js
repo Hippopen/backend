@@ -260,10 +260,11 @@ router.post('/login', async (req, res) => {
     if (!user.is_activated) return res.status(403).json({ error: 'Account not activated' });
 
     const token = signAccess({ sub: user.user_id, role: user.role });
+    const { password_hash, ...userSafe } = user.toJSON();
     res.json({
       access_token: token,
       token_type: 'bearer',
-      user: { user_id: user.user_id, role: user.role }
+      user: userSafe
     });
   } catch (e) {
     console.error(e);
