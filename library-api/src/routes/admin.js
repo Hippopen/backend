@@ -91,7 +91,7 @@ router.post('/scan', async (req, res) => {
  *         name: status
  *         schema:
  *           type: string
- *           description: pending | borrowed | returned | cancelled | overdue | lost
+ *           description: pending | borrowed | returned | canceled | overdue | lost
  *       - in: query
  *         name: user_id
  *         schema:
@@ -467,16 +467,16 @@ router.post('/loans/:loan_id/cancel', async (req, res) => {
   });
   if (!loan) return res.status(404).json({ error: 'Loan not found' });
   if (!RESERVED_STATUSES.includes(loan.status)) {
-    return res.status(409).json({ error: 'Only reserved/pending can be cancelled' });
+    return res.status(409).json({ error: 'Only reserved/pending can be canceled' });
   }
 
   for (const item of loan.items) {
     await Inventory.increment({ available: item.quantity }, { where: { book_id: item.book_id } });
   }
-  loan.status = 'cancelled';
+  loan.status = 'canceled';
   await loan.save();
 
-  return res.json({ message: 'Cancelled', loan_id: loan.loan_id });
+  return res.json({ message: 'Canceled', loan_id: loan.loan_id });
 });
 
 /**
