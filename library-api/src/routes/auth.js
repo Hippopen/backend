@@ -28,13 +28,14 @@ const escapeHtml = (str = '') =>
 async function sendActivationLink(user, token) {
   const url = `${process.env.APP_BASE_URL || 'http://localhost:3000'}/auth/activate?token=${token}`;
   if (user?.email) {
+    const fullName = [user.first_name, user.last_name].filter(Boolean).join(' ').trim();
     const sent = await sendMail({
       to: user.email,
-      subject: 'KÃ­ch hoáº¡t tÃ i khoáº£n thÆ° viá»‡n',
+      subject: 'Activate your library account',
       text:
-        `Xin chÃ o ${user.first_name || ''} ${user.last_name || ''}\n\n` +
-        `Nháº¥n vÃ o liÃªn káº¿t sau Ä‘á»ƒ kÃ­ch hoáº¡t tÃ i khoáº£n cá»§a báº¡n: ${url}\n\n` +
-        `Náº¿u báº¡n khÃ´ng yÃªu cáº§u, hÃ£y bá» qua email nÃ y.`
+        `Hi ${fullName || 'there'},\n\n` +
+        `Use the link below to activate your account:\n${url}\n\n` +
+        `If you didn't request this, you can ignore this email.`
     });
     if (sent) return;
   }
@@ -43,13 +44,14 @@ async function sendActivationLink(user, token) {
 async function sendResetLink(user, token) {
   const url = `${process.env.APP_BASE_URL || 'http://localhost:3000'}/auth/reset?token=${token}`;
   if (user?.email) {
+    const fullName = [user.first_name, user.last_name].filter(Boolean).join(' ').trim();
     const sent = await sendMail({
       to: user.email,
-      subject: 'Äáº·t láº¡i máº­t kháº©u thÆ° viá»‡n',
+      subject: 'Reset your library password',
       text:
-        `Xin chÃ o ${user.first_name || ''} ${user.last_name || ''}\n\n` +
-        `Nháº¥n vÃ o liÃªn káº¿t sau Ä‘á»ƒ Ä‘áº·t láº¡i máº­t kháº©u: ${url}\n\n` +
-        `Náº¿u báº¡n khÃ´ng yÃªu cáº§u, hÃ£y bá» qua email nÃ y.`
+        `Hi ${fullName || 'there'},\n\n` +
+        `Use this link to reset your password:\n${url}\n\n` +
+        `If you didn't request a reset, you can ignore this email.`
     });
     if (sent) return;
   }

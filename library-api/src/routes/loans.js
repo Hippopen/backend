@@ -5,6 +5,7 @@ const { signPickupToken } = require('../utils/pickupToken');
 
 const Loan = require('../models/Loan');
 const LoanItem = require('../models/LoanItem');
+const Inventory = require('../models/Inventory');
 
 const router = express.Router();
 
@@ -154,6 +155,43 @@ router.get('/:loan_id', async (req, res) => {
     return res.status(403).json({ error: 'Forbidden' });
   }
   res.json(loan);
+});
+
+/**
+ * @openapi
+ * /loans/{loan_id}/cancel:
+ *   post:
+ *     tags: [Loans]
+ *     summary: Huỷ loan khi đang pending
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: loan_id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: Loan đã được huỷ
+ *       404:
+ *         description: Loan không tồn tại
+ */
+
+router.post('/:loan_id/cancel', async (req, res) => {
+  const loan_id = Number(req.params.loan_id);
+  const loan = await Loan.findByPk(loan_id, { include: [{ model: LoanItem, as: 'items' }] });
+  if (!loan) return res.status(404).json({ error: 'Loan not found' });
+  if (loan.user_id !== req.user.user_id) return res.status(403).json({ error: 'Forbidden' });
+  if (loan.status !== 'pending') return res.status(409).json({ error: 'Only pending loans can be canceled' });
+
+  for (const item of loan.items) {
+    await Inventory.increment({ available: item.quantity }, { where: { book_id: item.book_id } });
+  }
+  loan.status = 'canceled';
+  await loan.save();
+
+  res.json({ message: 'Canceled', loan_id: loan.loan_id });
 });
 
 /**
