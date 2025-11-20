@@ -54,7 +54,7 @@ router.get('/:loan_id/qr.png', async (req, res) => {
     return res.status(403).json({ error: 'Forbidden' });
   }
   const token = signPickupToken(loan.loan_id, loan.code, '7d');
-  const url = `${process.env.APP_BASE_URL || 'http://localhost:3000'}/pickup?token=${token}`;
+  const url = `${process.env.APP_BASE_URL || 'http://localhost:3000'}/pickup?token=${token}&loan_id=${loan.loan_id}`;
   const png = await QRCode.toBuffer(url, { type: 'png', width: 256, errorCorrectionLevel: 'M' });
   res.set('Content-Type', 'image/png').send(png);
 });
@@ -68,8 +68,8 @@ if (process.env.ENABLE_QR_DEBUG === '1' && process.env.NODE_ENV !== 'production'
       return res.status(403).json({ error: 'Forbidden' });
     }
     const token = signPickupToken(loan.loan_id, loan.code, '7d');
-    const url = `${process.env.APP_BASE_URL || 'http://localhost:3000'}/pickup?token=${token}`;
-    res.json({ token, url });
+    const url = `${process.env.APP_BASE_URL || 'http://localhost:3000'}/pickup?token=${token}&loan_id=${loan.loan_id}`;
+    res.json({ token, url, loan_id: loan.loan_id });
   });
 }
 
