@@ -5,6 +5,7 @@ const { signPickupToken } = require('../utils/pickupToken');
 
 const Loan = require('../models/Loan');
 const LoanItem = require('../models/LoanItem');
+const Book = require('../models/Book');
 const Inventory = require('../models/Inventory');
 
 const router = express.Router();
@@ -111,7 +112,12 @@ router.get('/', async (req, res) => {
   if (status) where.status = status;
 
   const { rows, count } = await Loan.findAndCountAll({
-    where, include: [{ model: LoanItem, as: 'items' }],
+    where,
+    include: [{
+      model: LoanItem,
+      as: 'items',
+      include: [{ model: Book, as: 'book', attributes: ['book_id','title','author','cover_url'] }]
+    }],
     order: [['loan_id', 'DESC']], limit, offset
   });
 
@@ -121,7 +127,16 @@ router.get('/', async (req, res) => {
       loan_id: l.loan_id, code: l.code, status: l.status,
       borrow_at: l.borrow_at, due_date: l.due_date, return_at: l.return_at,
       renew_count: l.renew_count,
-      items: l.items.map(i => ({ book_id: i.book_id, quantity: i.quantity }))
+      items: l.items.map(i => ({
+        book_id: i.book_id,
+        quantity: i.quantity,
+        book: i.book ? {
+          book_id: i.book.book_id,
+          title: i.book.title,
+          author: i.book.author,
+          cover_url: i.book.cover_url
+        } : undefined
+      }))
     }))
   });
 });
@@ -149,7 +164,11 @@ router.get('/', async (req, res) => {
 
 router.get('/:loan_id', async (req, res) => {
   const loan_id = Number(req.params.loan_id);
-  const loan = await Loan.findByPk(loan_id, { include: [{ model: LoanItem, as: 'items' }] });
+  const loan = await Loan.findByPk(loan_id, { include: [{
+    model: LoanItem,
+    as: 'items',
+    include: [{ model: Book, as: 'book', attributes: ['book_id','title','author','cover_url'] }]
+  }] });
   if (!loan) return res.status(404).json({ error: 'Loan not found' });
   if (loan.user_id !== req.user.user_id && req.user.role !== 'admin') {
     return res.status(403).json({ error: 'Forbidden' });
