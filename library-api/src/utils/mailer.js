@@ -1,16 +1,12 @@
-// src/utils/mailer.js
-// Gửi email qua Resend API (HTTP), không dùng SMTP
-// Hoạt động cả trên Node có sẵn fetch (v18+) và Node cũ hơn (dùng node-fetch)
 
 const RESEND_API_KEY = process.env.RESEND_API_KEY;
 const MAIL_FROM = process.env.MAIL_FROM || 'WebShelf <no-reply@example.com>';
 
-// Chọn hàm fetch: ưu tiên global.fetch, nếu không có thì dùng node-fetch dynamic import
 let fetchFn = global.fetch;
 
 if (!fetchFn) {
   fetchFn = async (...args) => {
-    const mod = await import('node-fetch'); // node-fetch v3 ESM
+    const mod = await import('node-fetch');
     return mod.default(...args);
   };
 }
