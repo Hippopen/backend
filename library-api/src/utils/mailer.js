@@ -1,31 +1,41 @@
+const nodemailer = require('nodemailer');
 
-const RESEND_API_KEY = process.env.RESEND_API_KEY;
+const SMTP_HOST = process.env.SMTP_HOST;
+const SMTP_PORT = Number(process.env.SMTP_PORT) || 587;
+const SMTP_USER = process.env.SMTP_USER;
+const SMTP_PASS = process.env.SMTP_PASS;
 const MAIL_FROM = process.env.MAIL_FROM || 'WebShelf <no-reply@example.com>';
 
-let fetchFn = global.fetch;
+let transporter;
 
-if (!fetchFn) {
-  fetchFn = async (...args) => {
-    const mod = await import('node-fetch');
-    return mod.default(...args);
-  };
-}
-
-/**
- * Kiểm tra mailer có sẵn để dùng không
- */
+// Check if SMTP credentials are available
 function mailerReady() {
-  return !!RESEND_API_KEY;
+  return Boolean(SMTP_HOST && SMTP_USER && SMTP_PASS);
+}
+
+function getTransporter() {
+  if (!transporter) {
+    transporter = nodemailer.createTransport({
+      host: SMTP_HOST,
+      port: SMTP_PORT,
+      secure: SMTP_PORT === 465, // true for 465, false for 587/25
+      auth: {
+        user: SMTP_USER,
+        pass: SMTP_PASS,
+      },
+    });
+  }
+  return transporter;
 }
 
 /**
- * Gửi email bằng Resend API
+ * Send email via SMTP (AWS SES)
  * @param {{ to: string, subject: string, text?: string, html?: string }} params
  * @returns {Promise<boolean>}
  */
 async function sendMail({ to, subject, text, html } = {}) {
-  if (!RESEND_API_KEY) {
-    console.log('[Mailer] RESEND_API_KEY not set, skip email to', to);
+  if (!mailerReady()) {
+    console.log('[Mailer] SMTP credentials missing, skip email to', to);
     return false;
   }
 
@@ -37,38 +47,24 @@ async function sendMail({ to, subject, text, html } = {}) {
   const hasText = typeof text === 'string' && text.trim() !== '';
   const hasHtml = typeof html === 'string' && html.trim() !== '';
 
-  const body = {
+  const mailOptions = {
     from: MAIL_FROM,
     to,
     subject,
   };
 
   if (hasText) {
-    body.text = text;
+    mailOptions.text = text;
   }
 
   if (hasHtml) {
-    body.html = html;
+    mailOptions.html = html;
   } else if (hasText) {
-    body.html = text.replace(/\n/g, '<br/>');
+    mailOptions.html = text.replace(/\n/g, '<br/>');
   }
 
   try {
-    const res = await fetchFn('https://api.resend.com/emails', {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${RESEND_API_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(body),
-    });
-
-    if (!res.ok) {
-      const errText = await res.text();
-      console.error('[Mailer] Resend API error:', res.status, errText);
-      return false;
-    }
-
+    await getTransporter().sendMail(mailOptions);
     console.log('[Mailer] Email sent to', to);
     return true;
   } catch (err) {
